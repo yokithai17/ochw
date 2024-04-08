@@ -1,0 +1,3 @@
+C:/Users/olofk/oc_kal/build/CMakeFiles/coolApp.dir
+C:/Users/olofk/oc_kal/build/CMakeFiles/edit_cache.dir
+C:/Users/olofk/oc_kal/build/CMakeFiles/rebuild_cache.dir
