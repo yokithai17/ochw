@@ -1,9 +1,0 @@
-C:/Users/cl/ochw/hw4/build/CMakeFiles/coolApp.dir
-C:/Users/cl/ochw/hw4/build/CMakeFiles/edit_cache.dir
-C:/Users/cl/ochw/hw4/build/CMakeFiles/rebuild_cache.dir
-C:/Users/cl/ochw/hw4/build/src/notepad/CMakeFiles/notepad.dir
-C:/Users/cl/ochw/hw4/build/src/notepad/CMakeFiles/edit_cache.dir
-C:/Users/cl/ochw/hw4/build/src/notepad/CMakeFiles/rebuild_cache.dir
-C:/Users/cl/ochw/hw4/build/src/saver/CMakeFiles/saver.dir
-C:/Users/cl/ochw/hw4/build/src/saver/CMakeFiles/edit_cache.dir
-C:/Users/cl/ochw/hw4/build/src/saver/CMakeFiles/rebuild_cache.dir
