@@ -5,4 +5,4 @@
 
 Лаб. 4: Работа с файлами через API ОС
 
-[solution](https://github.com/yokithai17/ochw/tree/hw4/hw4)
+[solution](https://github.com/yokithai17/ochw/tree/main/hw4)
