@@ -4,23 +4,21 @@
 
 #include "notepad.h"
 #include "saver.h"
-
+#include "loader.h"
 
 const TCHAR szWinClass[] = _T("Win32SampleApp");
 const TCHAR szWinName[] = _T("Win32SampleWindow");
 /* HWND hwnd;               This is the handle for our window */
 HBRUSH hBrush;           /* Current brush */
+Config cfg;
 
 LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
 
 /**************************** MAIN ****************************************************/
 
 int main(int argc, char *argv[]) {
-  if (argc >= 2) {
-    N = std::strtol(argv[1], nullptr, 10);
-  } else {
-    N = 10;
-  }
+	StreamLoader::load("./config.txt", &cfg);
+
 
   BOOL bMessageOk;
   MSG message;            /* Here message to the application are saved */
@@ -37,7 +35,7 @@ int main(int argc, char *argv[]) {
   wincl.lpfnWndProc = WindowProcedure;      /* This function is called by Windows */
 
   /* Use custom brush to paint the background of the window */
-  hBrush = CreateSolidBrush(groundColor);
+  hBrush = CreateSolidBrush(cfg.groundColor);
   wincl.hbrBackground = hBrush;
 
   /* Register the window class, and if it fails quit the program */
@@ -51,8 +49,8 @@ int main(int argc, char *argv[]) {
       WS_OVERLAPPEDWINDOW, /* default window */
       CW_USEDEFAULT,       /* Windows decides the position */
       CW_USEDEFAULT,       /* where the window ends up on the screen */
-      WIDTH,                 /* The programs width */
-      HEIGHT,                 /* and height in pixels */
+      cfg.WIDTH,                 /* The programs width */
+      cfg.HEIGHT,                 /* and height in pixels */
       HWND_DESKTOP,        /* The window is a child-window to desktop */
       nullptr,                /* No menu */
       hThisInstance,       /* Program Instance handler */
@@ -79,7 +77,8 @@ int main(int argc, char *argv[]) {
   UnregisterClass(szWinClass, hThisInstance);
   DeleteObject(hBrush);
 
-	FileSaver(R"(.\points.txt)").save();
+	/* store data to file point.txt */
+	MapSaver("./config.txt").save(&cfg);
 
   return 0;
 }
@@ -88,11 +87,18 @@ int main(int argc, char *argv[]) {
 /***************************** WND PROCEDURE ************************************************/
 
 LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
-  static ShapeMap map(N, R"(.\points.txt)");
+  static ShapeMap map(R"(.\points.txt)", &cfg);
 
   switch (message)                  /* handle the messages */
   {
-  case WM_DESTROY:PostQuitMessage(0);       /* send a WM_QUIT to the message queue */
+  case WM_DESTROY:
+  {
+	  RECT rect;
+	  GetWindowRect(hwnd, &rect);
+	  cfg.WIDTH = rect.right - rect.left;
+	  cfg.HEIGHT = rect.bottom - rect.top;
+  }
+		PostQuitMessage(0);       /* send a WM_QUIT to the message queue */
     return 0;
 
   case WM_ERASEBKGND:return 0;
@@ -105,10 +111,10 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM 
     GetClientRect(hwnd, &rect);
 
     DeleteObject(hBrush);
-    hBrush = CreateSolidBrush(groundColor);
+    hBrush = CreateSolidBrush(map.getConfigPointer()->groundColor);
 
     FillRect(hdc, &rect, hBrush);
-    DrawGrid(hdc, rect);
+    DrawGrid(hdc, rect, map.getConfigPointer());
 
     map.draw(rect.right, rect.bottom, hdc);
     EndPaint(hwnd, &ps);
@@ -161,7 +167,7 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM 
       }
       break;
 
-    case VK_RETURN: ChangeBackgroundColor(hwnd);
+    case VK_RETURN: ChangeBackgroundColor(hwnd, map.getConfigPointer());
       break;
 
     case VK_SHIFT:
@@ -183,7 +189,7 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM 
 
   case WM_MOUSEWHEEL: {
     int delta = (GET_WHEEL_DELTA_WPARAM(wParam) > 0) ? (5) : (-5);
-    ChangeGridColor(delta);
+    ChangeGridColor(delta, map.getConfigPointer());
     InvalidateRect(hwnd, nullptr, 0);
   }
     return 0;

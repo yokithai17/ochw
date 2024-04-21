@@ -1,27 +1,28 @@
 #include "notepad.h"
 
+#include <utility>
+
 
 /*************************** ShapeMap ********************************************/
 
-	ShapeMap::ShapeMap(int n, std::string path) :
-			map_(std::vector<std::vector<int>>(n, std::vector<int>(n, 0)))
-			, path_(std::move(path))
+	ShapeMap::ShapeMap(std::string path, Config* cfg) :
+			path_(std::move(path))
+			, cfg_(cfg)
+			,map_(std::vector<std::vector<int>>(cfg_->N, std::vector<int>(cfg_->N, 0)))
 	{};
-
-	ShapeMap::~ShapeMap() {}
 
 	void ShapeMap::update(LONG width, LONG height,
 	            LONG x, LONG y, int status) {
-		LONG posX = mmin(9L, static_cast<LONG>(x / (width / N)));
-		LONG posY = mmin(9L, static_cast<LONG>(y / (height / N)));
+		LONG posX = mmin(9L, static_cast<LONG>(x / (width / cfg_->N)));
+		LONG posY = mmin(9L, static_cast<LONG>(y / (height / cfg_->N)));
 		map_[posX][posY] = status;
 	}
 
 	void ShapeMap::draw(LONG width, LONG height, HDC hdc) const {
-		LONG stepX = width / N;
-		LONG stepY = height / N;
-		for (int i = 0; i < N; ++i) {
-			for (int j = 0; j < N; ++j) {
+		LONG stepX = width / cfg_->N;
+		LONG stepY = height / cfg_->N;
+		for (int i = 0; i < cfg_->N; ++i) {
+			for (int j = 0; j < cfg_->N; ++j) {
 				LONG posX = i * stepX + stepX / 2;
 				LONG posY = j * stepY + stepY / 2;
 				switch (map_[i][j]) {
@@ -39,8 +40,9 @@
 		}
 	}
 
-/******************************************************************************************/
-
+	Config* ShapeMap::getConfigPointer() {
+		return this->cfg_;
+	}
 /*************************** helper functions ********************************************/
 
 template<class T>
@@ -70,22 +72,22 @@ void DrawCircle(HDC hdc, LONG left, LONG top, LONG right, LONG bottom) {
 }
 
 
-void DrawGrid(HDC hdc, RECT rect) {
-	LONG cellWidth = rect.right / N;
-	LONG cellHeight = rect.bottom / N;
+void DrawGrid(HDC hdc, RECT rect, Config* cfg) {
+	LONG cellWidth = rect.right / cfg->N;
+	LONG cellHeight = rect.bottom / cfg->N;
 
-	HPEN hPen = CreatePen(PS_SOLID, 1, gridColor);
+	HPEN hPen = CreatePen(PS_SOLID, 1, cfg->gridColor);
 	HPEN holdPen = (HPEN) SelectObject(hdc, hPen);
 
 	/* Draw verticals lines */
-	for (int i = 1; i < N; ++i) {
+	for (int i = 1; i < cfg->N; ++i) {
 		LONG x = i * cellWidth;
 		MoveToEx(hdc, x, 0, nullptr);
 		LineTo(hdc, x, rect.bottom);
 	}
 
 	/* Draw horizontal lines */
-	for (int i = 1; i < N; ++i) {
+	for (int i = 1; i < cfg->N; ++i) {
 		LONG y = i * cellHeight;
 		MoveToEx(hdc, 0, y, nullptr);
 		LineTo(hdc, rect.right, y);
@@ -99,31 +101,31 @@ void DrawGrid(HDC hdc, RECT rect) {
 
 /***************************** CHANGE COLOR FUNCTIONS*****************************************/
 
-void ChangeBackgroundColor(HWND hwnd) {
-	srand((unsigned) time(0));
-	groundColor = RGB(rand() % 256, rand() % 256, rand() % 256);
+void ChangeBackgroundColor(HWND hwnd, Config* cfg) {
+	srand((unsigned) time(nullptr));
+	cfg->groundColor = RGB(rand() % 256, rand() % 256, rand() % 256);
 	InvalidateRect(hwnd, nullptr, 0);
 }
 
-void ChangeGridColor(int delta) {
+void ChangeGridColor(int delta, Config* cfg) {
 	static DWORD lastScrollTime = 0;
 	DWORD currentTime = GetTickCount();
 	if (currentTime - lastScrollTime > 100) {
 		lastScrollTime = currentTime;
-		SmoothChangeGridColor(delta);
+		SmoothChangeGridColor(delta, cfg);
 	}
 }
 
-void SmoothChangeGridColor(int delta) {
-	static int r = GetRValue(gridColor);
-	static int g = GetGValue(gridColor);
-	static int b = GetBValue(gridColor);
+void SmoothChangeGridColor(int delta, Config* cfg) {
+	static int r = GetRValue(cfg->gridColor);
+	static int g = GetGValue(cfg->gridColor);
+	static int b = GetBValue(cfg->gridColor);
 
-	r = mmax(0, mmin(255, r + delta * COLOR_INCREMENT));
-	g = mmax(0, mmin(255, g + delta * COLOR_INCREMENT));
-	b = mmax(0, mmin(255, b + delta * COLOR_INCREMENT));
+	r = mmax(0, mmin(255, r + delta * cfg->COLOR_INCREMENT));
+	g = mmax(0, mmin(255, g + delta * cfg->COLOR_INCREMENT));
+	b = mmax(0, mmin(255, b + delta * cfg->COLOR_INCREMENT));
 
-	gridColor = RGB(r, g, b);
+	cfg->gridColor = RGB(r, g, b);
 }
 
 /*********************************************************************************************/

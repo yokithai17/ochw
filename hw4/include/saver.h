@@ -7,31 +7,86 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <windef.h>
 
-class ISaver {
-public:
-	virtual ~ISaver() {};
+#include "config.h"
 
-	virtual void save() = 0;
-};
+/******************************** Stream *****************************************/
 
-class FileSaver: public ISaver {
+class StreamSaver {
 private:
-	std::string path;
 	std::ofstream out;
 
-	FileSaver() = default;
+	void save_helper() {};
+
+	template<typename Head, typename... Tail>
+	void save_helper(const Head &head, const Tail &... tail) {
+		out << head << '\n';
+		save_helper(tail...);
+	}
 
 public:
-	FileSaver(const std::string& path);
 
-	~FileSaver() final;
+	explicit StreamSaver(std::string path);
 
-	void save() final;
+	~StreamSaver();
 
-	template <typename Head, typename... Tail>
-	void save(const Head& head,const Tail&... tail);
+	void save(Config* cfg) {
+		save_helper(
+				cfg->N,
+				cfg->WIDTH,
+				cfg->HEIGHT,
+				cfg->groundColor,
+				cfg->gridColor
+				);
+	}
 
 };
+
+/****************************** C-style *******************************************/
+
+class CstyleSaver {
+private:
+	FILE* fl;
+	bool isOpened;
+
+	CstyleSaver() = default;
+public:
+	explicit CstyleSaver(const char*);
+
+	~CstyleSaver();
+
+	void save(int, int, int, COLORREF, COLORREF);
+};
+
+/***************************** Wmaping ********************************************/
+
+class MapSaver {
+private:
+	std::string path;
+
+	MapSaver() = default;
+
+public:
+	explicit MapSaver(std::string  path);
+
+	~MapSaver();
+
+	void save(Config* cfg);
+};
+
+/******************************** WINAPI *****************************************/
+
+class wFileSaver {
+private:
+	std::string path;
+
+	wFileSaver() = default;
+public:
+	explicit wFileSaver(std::string path);
+
+	void save(Config* cfg);
+};
+
 
 #endif //COOLAPP__SAVER_H
