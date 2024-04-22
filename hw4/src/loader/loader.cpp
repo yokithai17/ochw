@@ -87,7 +87,72 @@ void MapLoader::load(const std::string &path, Config *cfg) {
 
 /**********************************************************************************/
 /****************************** WFileLoader ****************************************/
-
 void wFileLoader::load(const std::string &path, Config *cfg) {
+	HANDLE hFile = CreateFile(path.c_str(), GENERIC_READ,
+														0, nullptr, OPEN_EXISTING,
+														FILE_ATTRIBUTE_NORMAL, nullptr);
 
+	if (hFile == INVALID_HANDLE_VALUE) {
+		CloseHandle(hFile);
+		return;
+	}
+
+	DWORD size;
+	char buffer[1024];
+
+	if (ReadFile(hFile, buffer, sizeof(buffer), &size, nullptr)) {
+		DWORD i = 0;
+		std::string tmp;
+		for (;i < size; ++i) {
+			if (buffer[i] == '\n') {
+				++i;
+				cfg->N = std::stoi(tmp);
+				tmp.clear();
+				break;
+			}
+			tmp.push_back(buffer[i]);
+		}
+
+		for (;i < size; ++i) {
+			if (buffer[i] == '\n') {
+				++i;
+				cfg->WIDTH = std::stoi(tmp);
+				tmp.clear();
+				break;
+			}
+			tmp.push_back(buffer[i]);
+		}
+
+		for (;i < size; ++i) {
+			if (buffer[i] == '\n') {
+				++i;
+				cfg->HEIGHT = std::stoi(tmp);
+				tmp.clear();
+				break;
+			}
+			tmp.push_back(buffer[i]);
+		}
+
+		for (;i < size; ++i) {
+			if (buffer[i] == '\n') {
+				++i;
+				cfg->groundColor = std::stol(tmp);
+				tmp.clear();
+				break;
+			}
+			tmp.push_back(buffer[i]);
+		}
+
+		for (;i < size; ++i) {
+			if (buffer[i] == '\n') {
+				++i;
+				cfg->gridColor = std::stol(tmp);
+				tmp.clear();
+				break;
+			}
+			tmp.push_back(buffer[i]);
+		}
+	}
+
+	CloseHandle(hFile);
 }
