@@ -1,3 +1,0 @@
-"C:\Program Files\CMake\bin\cmake.exe" -E rm -f CMakeFiles\coolApp.dir/objects.a
-C:\MinGW\bin\ar.exe qc CMakeFiles\coolApp.dir/objects.a @CMakeFiles\coolApp.dir\objects1.rsp
-C:\MinGW\bin\c++.exe -mwindows -Wl,--whole-archive CMakeFiles\coolApp.dir/objects.a -Wl,--no-whole-archive -o C:\Users\cl\ochw\hw5\bin\coolApp.exe -Wl,--out-implib,libcoolApp.dll.a -Wl,--major-image-version,0,--minor-image-version,0 @CMakeFiles\coolApp.dir\linkLibs.rsp
