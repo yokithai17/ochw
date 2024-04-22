@@ -1,0 +1,210 @@
+{
+	"configurations" : 
+	[
+		{
+			"directories" : 
+			[
+				{
+					"build" : ".",
+					"childIndexes" : 
+					[
+						1,
+						2,
+						3,
+						4
+					],
+					"jsonFile" : "directory-.-Debug-d0094a50bb2071803777.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.10"
+					},
+					"projectIndex" : 0,
+					"source" : ".",
+					"targetIndexes" : 
+					[
+						0
+					]
+				},
+				{
+					"build" : "src/notepad",
+					"jsonFile" : "directory-src.notepad-Debug-19d6a1bd9c40deb924d1.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.10"
+					},
+					"parentIndex" : 0,
+					"projectIndex" : 1,
+					"source" : "src/notepad",
+					"targetIndexes" : 
+					[
+						3
+					]
+				},
+				{
+					"build" : "src/saver",
+					"jsonFile" : "directory-src.saver-Debug-c25d3fc7dfc669ac71e9.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.10"
+					},
+					"parentIndex" : 0,
+					"projectIndex" : 2,
+					"source" : "src/saver",
+					"targetIndexes" : 
+					[
+						4
+					]
+				},
+				{
+					"build" : "src/Config",
+					"jsonFile" : "directory-src.Config-Debug-c53deff682100e18b991.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.10"
+					},
+					"parentIndex" : 0,
+					"projectIndex" : 3,
+					"source" : "src/Config",
+					"targetIndexes" : 
+					[
+						1
+					]
+				},
+				{
+					"build" : "src/loader",
+					"jsonFile" : "directory-src.loader-Debug-f859d6df68e7616dc88a.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.10"
+					},
+					"parentIndex" : 0,
+					"projectIndex" : 4,
+					"source" : "src/loader",
+					"targetIndexes" : 
+					[
+						2
+					]
+				}
+			],
+			"name" : "Debug",
+			"projects" : 
+			[
+				{
+					"childIndexes" : 
+					[
+						1,
+						2,
+						3,
+						4
+					],
+					"directoryIndexes" : 
+					[
+						0
+					],
+					"name" : "Win32SampleApp",
+					"targetIndexes" : 
+					[
+						0
+					]
+				},
+				{
+					"directoryIndexes" : 
+					[
+						1
+					],
+					"name" : "notepad",
+					"parentIndex" : 0,
+					"targetIndexes" : 
+					[
+						3
+					]
+				},
+				{
+					"directoryIndexes" : 
+					[
+						2
+					],
+					"name" : "saver",
+					"parentIndex" : 0,
+					"targetIndexes" : 
+					[
+						4
+					]
+				},
+				{
+					"directoryIndexes" : 
+					[
+						3
+					],
+					"name" : "config",
+					"parentIndex" : 0,
+					"targetIndexes" : 
+					[
+						1
+					]
+				},
+				{
+					"directoryIndexes" : 
+					[
+						4
+					],
+					"name" : "loader",
+					"parentIndex" : 0,
+					"targetIndexes" : 
+					[
+						2
+					]
+				}
+			],
+			"targets" : 
+			[
+				{
+					"directoryIndex" : 0,
+					"id" : "Win32SampleApp::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-Win32SampleApp-Debug-010d9d55a85d02ac1306.json",
+					"name" : "Win32SampleApp",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 3,
+					"id" : "config::@17c6f809233a4485d317",
+					"jsonFile" : "target-config-Debug-fc24506e84f2748900b7.json",
+					"name" : "config",
+					"projectIndex" : 3
+				},
+				{
+					"directoryIndex" : 4,
+					"id" : "loader::@21fec11f189f167a3127",
+					"jsonFile" : "target-loader-Debug-9451d89f2b90859662eb.json",
+					"name" : "loader",
+					"projectIndex" : 4
+				},
+				{
+					"directoryIndex" : 1,
+					"id" : "notepad::@15fd88767403a446a87f",
+					"jsonFile" : "target-notepad-Debug-7575382d7b9dfb6c4c7b.json",
+					"name" : "notepad",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 2,
+					"id" : "saver::@c232fa9ceda930ee7b21",
+					"jsonFile" : "target-saver-Debug-74928cd024b122c78f2f.json",
+					"name" : "saver",
+					"projectIndex" : 2
+				}
+			]
+		}
+	],
+	"kind" : "codemodel",
+	"paths" : 
+	{
+		"build" : "C:/Users/cl/ochw/hw5/build",
+		"source" : "C:/Users/cl/ochw/hw5"
+	},
+	"version" : 
+	{
+		"major" : 2,
+		"minor" : 7
+	}
+}
