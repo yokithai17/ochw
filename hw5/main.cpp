@@ -36,6 +36,8 @@ char* pBuf = (char*)MapViewOfFile(
 
 LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
 
+BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam);
+
 /**************************** HWND HOlder ****************************************************/
 
 /**************************** MAIN ****************************************************/
@@ -176,12 +178,24 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM 
 		PostQuitMessage(0);       /* send a WM_QUIT to the message queue */
     return 0;
 
-  case WM_ERASEBKGND:return 0;
+  case WM_ERASEBKGND: {
 
-  case WM_PLAY_MOVE: {
-	  InvalidateRect(hwnd, nullptr, 0);
-  }
-	  return 0;
+	  PAINTSTRUCT ps;
+	  map.loadFromMapping();
+	  HDC hdc = BeginPaint(hwnd, &ps);
+	  RECT rect;
+	  GetClientRect(hwnd, &rect);
+
+	  DeleteObject(hBrush);
+	  hBrush = CreateSolidBrush(map.getConfigPointer()->groundColor);
+
+	  FillRect(hdc, &rect, hBrush);
+	  DrawGrid(hdc, rect, map.getConfigPointer());
+
+	  map.draw(rect.right, rect.bottom, hdc);
+	  EndPaint(hwnd, &ps);
+	}
+		return 0;
 
   case WM_PAINT: {
     PAINTSTRUCT ps;
@@ -212,11 +226,8 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM 
     RECT rect;
     GetClientRect(hwnd, &rect);
     map.update(rect.right, rect.bottom, xPos, yPos, 1);
-
-		HWND hwndTarget = FindWindow(szWinClass, szWinName);
-		SendMessage(hwndTarget, WM_PLAY_MOVE, 0, 0);
-
-    InvalidateRect(hwnd, nullptr, 0);
+	  EnumWindows(EnumWindowsProc, 0);
+	  //InvalidateRect(nullptr, nullptr, FALSE);
   }
 
     return 0;
@@ -228,9 +239,8 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM 
     RECT rect;
     GetClientRect(hwnd, &rect);
     map.update(rect.right, rect.bottom, xPos, yPos, 2);
-	  HWND hwndTarget = FindWindow(szWinClass, szWinName);
-	  PostMessage(hwndTarget, WM_PLAY_MOVE, 0, 0);
-    InvalidateRect(hwnd, nullptr, 0);
+	  EnumWindows(EnumWindowsProc, 0);
+	  //InvalidateRect(nullptr, nullptr, FALSE);
   }
 
     return 0;
@@ -276,7 +286,7 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM 
   case WM_MOUSEWHEEL: {
     int delta = (GET_WHEEL_DELTA_WPARAM(wParam) > 0) ? (5) : (-5);
     ChangeGridColor(delta, map.getConfigPointer());
-    InvalidateRect(hwnd, nullptr, 0);
+    InvalidateRect(nullptr, nullptr, 0);
   }
     return 0;
   }
@@ -284,4 +294,15 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM 
 
   /* for messages that we don't deal with */
   return DefWindowProc(hwnd, message, wParam, lParam);
+}
+
+BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam) {
+	char className[256];
+	GetClassName(hwnd, className, sizeof(className));
+
+	if (strcmp(className, szWinClass) == 0) {
+		RedrawWindow(hwnd, nullptr, nullptr, RDW_INVALIDATE | RDW_FRAME | RDW_ALLCHILDREN);
+	}
+
+	return TRUE;
 }
