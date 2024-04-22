@@ -10,15 +10,41 @@ const TCHAR szWinClass[] = _T("Win32SampleApp");
 const TCHAR szWinName[] = _T("Win32SampleWindow");
 /* HWND hwnd;               This is the handle for our window */
 HBRUSH hBrush;           /* Current brush */
-Config cfg;
+
+Config cfg;             /* check config.h to more info */
 
 LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
 
 /**************************** MAIN ****************************************************/
 
 int main(int argc, char *argv[]) {
-	StreamLoader::load("./config.txt", &cfg);
+	int loadConfig = 0;
 
+	if (argc > 1) {
+		cfg.N = std::strtol(argv[1], nullptr, 10);
+		if (argc == 3) {
+			loadConfig = std::strtol(argv[2], nullptr, 10);
+		}
+	}
+
+	switch (loadConfig) {
+	case 1: {
+		StreamLoader::load("./config.txt", &cfg);
+	}
+		break;
+	case 2: {
+		CstyleLoader::load("./config.txt", &cfg);
+	}
+		break;
+	case 3: {
+		MapLoader::load("./config.txt", &cfg);
+	}
+		break;
+	case 4: {
+		wFileLoader::load("./config.txt", &cfg);
+	}
+		break;
+	}
 
   BOOL bMessageOk;
   MSG message;            /* Here message to the application are saved */
@@ -78,7 +104,24 @@ int main(int argc, char *argv[]) {
   DeleteObject(hBrush);
 
 	/* store data to file point.txt */
-	MapSaver("./config.txt").save(&cfg);
+	switch (loadConfig) {
+	case 1: {
+		StreamSaver("./config.txt").save(&cfg);
+	}
+		break;
+	case 2: {
+		CstyleSaver("./config.txt").save(&cfg);
+	}
+		break;
+	case 3: {
+		MapSaver("./config.txt").save(&cfg);
+	}
+		break;
+	case 4: {
+		wFileSaver("./config.txt").save(&cfg);
+	}
+		break;
+	}
 
   return 0;
 }

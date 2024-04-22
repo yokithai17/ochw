@@ -52,11 +52,11 @@ private:
 
 	CstyleSaver() = default;
 public:
-	explicit CstyleSaver(const char*);
+	explicit CstyleSaver(const std::string& str);
 
 	~CstyleSaver();
 
-	void save(int, int, int, COLORREF, COLORREF);
+	void save(Config* cfg);
 };
 
 /***************************** Wmaping ********************************************/

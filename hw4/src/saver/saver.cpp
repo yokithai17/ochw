@@ -16,7 +16,7 @@ StreamSaver::~StreamSaver() {
 
 /**************************** C-style Saver **************************************/
 
-CstyleSaver::CstyleSaver(const char* path): fl(fopen(path, "w")) {
+CstyleSaver::CstyleSaver(const std::string& path): fl(fopen(path.c_str(), "w")) {
 	isOpened = (fl != nullptr);
 }
 
@@ -24,9 +24,11 @@ CstyleSaver::~CstyleSaver() {
 	fclose(fl);
 }
 
-void CstyleSaver::save(int N, int WIDTH, int HEIGHT, COLORREF groundColor, COLORREF gridColor) {
+void CstyleSaver::save(Config* cfg) {
 	if (isOpened) {
-		fprintf(fl, "%d\n%d\n%d\n%ld\n%ld\n", N, WIDTH, HEIGHT, groundColor, gridColor);
+		fprintf(fl
+						, "%d\n%d\n%d\n%ld\n%ld\n"
+						, cfg->N, cfg->WIDTH, cfg->HEIGHT, cfg->groundColor, cfg->gridColor);
 	}
 }
 /*******************************************************************************/
@@ -118,7 +120,7 @@ void MapSaver::save(Config *cfg) {
 wFileSaver::wFileSaver(std::string path): path(std::move(path)) {}
 
 void wFileSaver::save(Config* cfg) {
-	HANDLE hFile = CreateFile(path.c_str(), GENERIC_WRITE | GENERIC_READ,
+	HANDLE hFile = CreateFile(path.c_str(), GENERIC_WRITE,
 	                          0, nullptr, CREATE_ALWAYS,
 	                          FILE_ATTRIBUTE_NORMAL, nullptr);
 
