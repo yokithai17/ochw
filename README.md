@@ -1,4 +1,8 @@
 # Репозиторий для хранения Домашек по ОС
+Лаб 1. Взаимодействие с ОС через программный интерфейс
+
+[solution](https://github.com/yokithai17/ochw/tree/main/hw1)
+
 Лаб. 3: Начальное знакомство с API ОС
 
 [solution](https://github.com/yokithai17/ochw/tree/main/hw3)
