@@ -2,7 +2,8 @@
 #include <algorithm>
 #include <windows.h>
 #include <tchar.h>
-#include <time.h>
+#include <random>
+#include <ctime>
 #include <utility>
 #include <vector>
 #include <fstream>
@@ -23,7 +24,7 @@ HBRUSH hBrush;           /* Current brush */
 /******************************** function ************************************/
 LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
 
-void DrawGrid(HDC hdc, RECT rect);
+void DrawGrid(HDC hdc, LONG xSize, LONG ySize);
 
 void DrawCross(HDC hdc, LONG posX, LONG posY, LONG step);
 
@@ -65,19 +66,22 @@ public:
   explicit ShapeMap(int n, std::string path) :
       map_(std::vector<std::vector<int>>(n, std::vector<int>(n, 0)))
       , path_(std::move(path))
-  {
-    this->load();
-  };
+  {};
 
-  ~ShapeMap() {
-    this->save();
-  }
+  ~ShapeMap() = default;
 
-  void update(LONG width, LONG height,
-              LONG x, LONG y, int status) {
-    LONG posX = mmin(9L, static_cast<LONG>(x / (width / N)));
-    LONG posY = mmin(9L, static_cast<LONG>(y / (height / N)));
-    map_[posX][posY] = status;
+  void update(int width, int height,
+              int x, int y, int status) {
+		double cellWidth = width / static_cast<double>(N);
+		double cellHeight = height / static_cast<double>(N);
+
+		int posX = std::floor(x / cellWidth);
+		int posY = std::floor(y / cellHeight);
+
+		posX = mmin(posX, N - 1);
+		posY = mmin(posY, N - 1);
+
+	  map_[posX][posY] = status;
   }
 
   void draw(LONG width, LONG height, HDC hdc) const {
@@ -85,8 +89,8 @@ public:
     LONG stepY = height / N;
     for (int i = 0; i < N; ++i) {
       for (int j = 0; j < N; ++j) {
-        LONG posX = i * stepX + stepX / 2;
-        LONG posY = j * stepY + stepY / 2;
+        LONG posX = i * width / N + stepX / 2;
+        LONG posY = j * height / N + stepY / 2;
         switch (map_[i][j]) {
         case 1: {
           DrawCross(hdc, posX, posY, mmin(stepY, stepX) / 3);
@@ -102,33 +106,6 @@ public:
     }
   }
 
-  void load() {
-    std::ifstream in(path_);
-    std::string str;
-    in >> str;
-    int size = static_cast<int>(str.size());
-    if (N * N != size) {
-      return;
-    }
-
-    for (int i = 0; i < N; ++i) {
-      for (int j = 0; j < N; ++j) {
-        map_[i][j] = static_cast<int>(str[i * N + j]) - static_cast<int>('0');
-      }
-    }
-
-    in.close();
-  }
-
-  void save() const {
-    std::ofstream out(path_);
-    for (int i = 0; i < N; ++i) {
-      for (int j = 0; j < N; ++j) {
-        out << static_cast<char>(map_[i][j] + static_cast<int>('0'));
-      }
-    }
-    out.close();
-  }
 };
 /***********************************************************************************/
 
@@ -206,6 +183,8 @@ int main(int argc, char *argv[]) {
 
 LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
   static ShapeMap map(N, R"(.\points.txt)");
+	static LONG xSize;
+	static LONG ySize;
 
   switch (message)                  /* handle the messages */
   {
@@ -225,36 +204,37 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM 
     hBrush = CreateSolidBrush(groundColor);
 
     FillRect(hdc, &rect, hBrush);
-    DrawGrid(hdc, rect);
+    DrawGrid(hdc, xSize, ySize);
 
-    map.draw(rect.right, rect.bottom, hdc);
+    map.draw(xSize, ySize, hdc);
     EndPaint(hwnd, &ps);
   }
     return 0;
   case WM_SIZE: {
+	  RECT rect;
+	  GetClientRect(hwnd, &rect);
+
+	  xSize = rect.right - rect.left;
+	  ySize = rect.bottom - rect.top;
     InvalidateRect(hwnd, nullptr, 0);
   }
     return 0;
 
   case WM_RBUTTONDOWN: {
-    LONG xPos = GET_X_LPARAM(lParam);
-    LONG yPos = GET_Y_LPARAM(lParam);
+	  int xPos = GET_X_LPARAM(lParam);
+	  int yPos = GET_Y_LPARAM(lParam);
 
-    RECT rect;
-    GetClientRect(hwnd, &rect);
-    map.update(rect.right, rect.bottom, xPos, yPos, 1);
+    map.update(xSize, ySize, xPos, yPos, 1);
     InvalidateRect(hwnd, nullptr, 0);
   }
 
     return 0;
 
   case WM_LBUTTONDOWN: {
-    LONG xPos = GET_X_LPARAM(lParam);
-    LONG yPos = GET_Y_LPARAM(lParam);
+    int xPos = GET_X_LPARAM(lParam);
+    int yPos = GET_Y_LPARAM(lParam);
 
-    RECT rect;
-    GetClientRect(hwnd, &rect);
-    map.update(rect.right, rect.bottom, xPos, yPos, 2);
+    map.update(xSize, ySize, xPos, yPos, 2);
     InvalidateRect(hwnd, nullptr, 0);
   }
 
@@ -267,13 +247,7 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM 
       break;
 
     case 'Q':
-      if (GetKeyState(VK_CONTROL)) {
-        PostQuitMessage(0);
-      }
-      break;
-
-    case VK_CONTROL:
-      if (GetKeyState('Q')) {
+      if (GetKeyState(VK_CONTROL) < 0) {
         PostQuitMessage(0);
       }
       break;
@@ -281,19 +255,13 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM 
     case VK_RETURN: ChangeBackgroundColor(hwnd);
       break;
 
-    case VK_SHIFT:
-      if (GetKeyState('C')) {
+    case 'C':
+      if (GetKeyState(VK_SHIFT) < 0) {
         ShellExecute(nullptr, "open", "notepad.exe",
                      nullptr, nullptr, SW_SHOWNORMAL);
       }
       break;
 
-    case 'C':
-      if (GetKeyState(VK_SHIFT)) {
-        ShellExecute(nullptr, "open", "notepad.exe",
-                     nullptr, nullptr, SW_SHOWNORMAL);
-      }
-      break;
     }
 
     return 0;
@@ -314,29 +282,27 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM 
 
 /***************************** DRAW FUNCTIONS ************************************************/
 
-void DrawGrid(HDC hdc, RECT rect) {
-  LONG cellWidth = rect.right / N;
-  LONG cellHeight = rect.bottom / N;
+void DrawGrid(HDC hdc, LONG right, LONG bottom) {
 
-  HPEN hPen = CreatePen(PS_SOLID, 1, gridColor);
-  HPEN holdPen = (HPEN) SelectObject(hdc, hPen);
+	HPEN hPen = CreatePen(PS_SOLID, 1, gridColor);
+	HPEN holdPen = (HPEN) SelectObject(hdc, hPen);
 
-  /* Draw verticals lines */
-  for (int i = 1; i < N; ++i) {
-    LONG x = i * cellWidth;
-    MoveToEx(hdc, x, 0, nullptr);
-    LineTo(hdc, x, rect.bottom);
-  }
+	/* Draw verticals lines */
+	for (int i = 1; i < N; ++i) {
+		LONG x = i * right / N;
+		MoveToEx(hdc, x, 0, nullptr);
+		LineTo(hdc, x, bottom);
+	}
 
-  /* Draw horizontal lines */
-  for (int i = 1; i < N; ++i) {
-    LONG y = i * cellHeight;
-    MoveToEx(hdc, 0, y, nullptr);
-    LineTo(hdc, rect.right, y);
-  }
+	/* Draw horizontal lines */
+	for (int i = 1; i < N; ++i) {
+		LONG y = i * bottom / N;
+		MoveToEx(hdc, 0, y, nullptr);
+		LineTo(hdc, right, y);
+	}
 
-  SelectObject(hdc, holdPen);
-  DeleteObject(hPen);
+	SelectObject(hdc, holdPen);
+	DeleteObject(hPen);
 }
 
 void DrawCross(HDC hdc, LONG posX, LONG posY, LONG step) {
@@ -354,8 +320,12 @@ void DrawCircle(HDC hdc, LONG left, LONG top, LONG right, LONG bottom) {
 /***************************** CHANGE COLOR FUNCTIONS*****************************************/
 
 void ChangeBackgroundColor(HWND hwnd) {
-  srand((unsigned) time(0));
-  groundColor = RGB(rand() % 256, rand() % 256, rand() % 256);
+	std::mt19937 engine;
+	engine.seed(std::time(nullptr));
+  groundColor = RGB(engine() % 256, engine() % 256, engine() % 256);
+	HBRUSH Brush = CreateSolidBrush(groundColor);
+	ULONG_PTR DelBrush = SetClassLongPtr(hwnd, GCLP_HBRBACKGROUND, (LONG_PTR)Brush);
+	DeleteObject(HGDIOBJ(DelBrush));
   InvalidateRect(hwnd, nullptr, 0);
 }
 
