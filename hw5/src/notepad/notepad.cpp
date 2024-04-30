@@ -1,6 +1,5 @@
 #include "notepad.h"
 
-#include <utility>
 
 
 /*************************** ShapeMap ********************************************/
@@ -23,21 +22,29 @@
 		out << pBuf_;
 	};
 
-	void ShapeMap::update(LONG width, LONG height,
-	            LONG x, LONG y, int status) {
-		LONG posX = mmin(9L, static_cast<LONG>(x / (width / cfg_->N)));
-		LONG posY = mmin(9L, static_cast<LONG>(y / (height / cfg_->N)));
-		map_[posX][posY] = status;
+	void ShapeMap::update(int width, int height,
+	                      int x, int y, int status) {
+		double cellWidth = width / static_cast<double>(cfg_->N);
+		double cellHeight = height / static_cast<double>(cfg_->N);
+
+		int posX = std::floor(x / cellWidth);
+		int posY = std::floor(y / cellHeight);
+
+		posX = mmin(posX, cfg_->N - 1);
+		posY = mmin(posY, cfg_->N - 1);
+
 		pBuf_[posX + posY * map_.size()] = static_cast<char>(status + static_cast<int>('0'));
+		map_[posX][posY] = status;
 	}
 
 	void ShapeMap::draw(LONG width, LONG height, HDC hdc) const {
 		LONG stepX = width / cfg_->N;
 		LONG stepY = height / cfg_->N;
+
 		for (int i = 0; i < cfg_->N; ++i) {
 			for (int j = 0; j < cfg_->N; ++j) {
-				LONG posX = i * stepX + stepX / 2;
-				LONG posY = j * stepY + stepY / 2;
+				LONG posX = i * width / cfg_->N + stepX / 2;
+				LONG posY = j * height / cfg_->N + stepY / 2;
 				switch (map_[i][j]) {
 				case 1: {
 					DrawCross(hdc, posX, posY, mmin(stepY, stepX) / 3);
@@ -98,25 +105,22 @@ void DrawCircle(HDC hdc, LONG left, LONG top, LONG right, LONG bottom) {
 }
 
 
-void DrawGrid(HDC hdc, RECT rect, Config* cfg) {
-	LONG cellWidth = rect.right / cfg->N;
-	LONG cellHeight = rect.bottom / cfg->N;
-
+void DrawGrid(HDC hdc, Config* cfg) {
 	HPEN hPen = CreatePen(PS_SOLID, 1, cfg->gridColor);
 	HPEN holdPen = (HPEN) SelectObject(hdc, hPen);
 
 	/* Draw verticals lines */
 	for (int i = 1; i < cfg->N; ++i) {
-		LONG x = i * cellWidth;
+		LONG x = i * cfg->WIDTH / cfg->N;
 		MoveToEx(hdc, x, 0, nullptr);
-		LineTo(hdc, x, rect.bottom);
+		LineTo(hdc, x, cfg->HEIGHT);
 	}
 
 	/* Draw horizontal lines */
 	for (int i = 1; i < cfg->N; ++i) {
-		LONG y = i * cellHeight;
+		LONG y = i * cfg->HEIGHT / cfg->N;
 		MoveToEx(hdc, 0, y, nullptr);
-		LineTo(hdc, rect.right, y);
+		LineTo(hdc, cfg->WIDTH, y);
 	}
 
 	SelectObject(hdc, holdPen);
@@ -128,8 +132,12 @@ void DrawGrid(HDC hdc, RECT rect, Config* cfg) {
 /***************************** CHANGE COLOR FUNCTIONS*****************************************/
 
 void ChangeBackgroundColor(HWND hwnd, Config* cfg) {
-	srand((unsigned) time(nullptr));
-	cfg->groundColor = RGB(rand() % 256, rand() % 256, rand() % 256);
+	std::mt19937 engine;
+	engine.seed(std::time(nullptr));
+	cfg->groundColor = RGB(engine() % 256, engine() % 256, engine() % 256);
+	HBRUSH Brush = CreateSolidBrush(cfg->groundColor);
+	ULONG_PTR DelBrush = SetClassLongPtr(hwnd, GCLP_HBRBACKGROUND, (LONG_PTR)Brush);
+	DeleteObject(HGDIOBJ(DelBrush));
 	InvalidateRect(hwnd, nullptr, 0);
 }
 

@@ -30,7 +30,7 @@ public:
 
 	~ShapeMap() = default;
 
-	void update(LONG width, LONG height, LONG x, LONG y, int status);
+	void update(int width, int height, int x, int y, int status);
 
 	void draw(LONG width, LONG height, HDC hdc) const;
 
@@ -45,7 +45,7 @@ void DrawCross(HDC hdc, LONG posX, LONG posY, LONG step);
 
 void DrawCircle(HDC hdc, LONG left, LONG top, LONG right, LONG bottom);
 
-void DrawGrid(HDC hdc, RECT rect, Config* cfg);
+void DrawGrid(HDC hdc, Config* cfg);
 
 void ChangeBackgroundColor(HWND hwnd, Config* cfg);
 

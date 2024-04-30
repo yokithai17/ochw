@@ -3,13 +3,18 @@
 #ifndef COOLAPP__NOTEPAD_H
 #define COOLAPP__NOTEPAD_H
 
-#include <iostream>
+#include <windows.h>
+
 #include <vector>
 #include <string>
-#include <utility>
+
+#include <iostream>
 #include <fstream>
-#include <windows.h>
-#include <time.h>
+
+#include <ctime>
+#include <utility>
+#include <cmath>
+#include <random>
 
 #include "config.h"
 
@@ -31,7 +36,7 @@ public:
 
 	~ShapeMap() = default;
 
-	void update(LONG width, LONG height, LONG x, LONG y, int status);
+	void update(int width, int height, int x, int y, int status);
 
 	void draw(LONG width, LONG height, HDC hdc) const;
 
@@ -50,7 +55,7 @@ void DrawCross(HDC hdc, LONG posX, LONG posY, LONG step);
 
 void DrawCircle(HDC hdc, LONG left, LONG top, LONG right, LONG bottom);
 
-void DrawGrid(HDC hdc, RECT rect, Config* cfg);
+void DrawGrid(HDC hdc, Config* cfg);
 
 void ChangeBackgroundColor(HWND hwnd, Config* cfg);
 

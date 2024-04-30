@@ -71,10 +71,39 @@ int main(int argc, char *argv[]) {
 		break;
 	}
 
-	if (pBuf[0] != '0') {
+	HANDLE hMapFileTMP = CreateFileMapping(
+			INVALID_HANDLE_VALUE,
+			NULL,
+			PAGE_READWRITE,
+			0,
+			10,
+			_T("ChatLine9847589345673246759")
+	);
+
+	char* pBufTMP = (char*)MapViewOfFile(
+			hMapFileTMP,
+			FILE_MAP_ALL_ACCESS,
+			0,
+			0,
+			10
+	);
+
+
+	if (pBufTMP[0] != '0') {
+		pBufTMP[0] = '0';
+		std::string line = std::to_string(cfg.N);
+		for (int i = 0; i < line.size(); ++i) {
+			pBufTMP[i + 1] = line[i];
+		}
+		pBufTMP[line.size() + 1] = '\n';
 		for (int i = 0; i < cfg.N * cfg.N; ++i) {
 			pBuf[i] = '0';
 		}
+	} else {
+		std::istringstream in(pBufTMP);
+		std::string line;
+		std::getline(in, line);
+		cfg.N = std::stoi(line, nullptr, 10);
 	}
 
   BOOL bMessageOk;
@@ -156,7 +185,9 @@ int main(int argc, char *argv[]) {
 	}
 
   UnmapViewOfFile(pBuf);
+	UnmapViewOfFile(pBufTMP);
   CloseHandle(hMapFile);
+	CloseHandle(hMapFileTMP);
   return 0;
 }
 /********************************************************************************************/
@@ -179,18 +210,19 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM 
     return 0;
 
   case WM_ERASEBKGND: {
-
 	  PAINTSTRUCT ps;
-	  map.loadFromMapping();
 	  HDC hdc = BeginPaint(hwnd, &ps);
+
+	  map.loadFromMapping();
+
 	  RECT rect;
 	  GetClientRect(hwnd, &rect);
 
 	  DeleteObject(hBrush);
-	  hBrush = CreateSolidBrush(map.getConfigPointer()->groundColor);
+	  hBrush = CreateSolidBrush(cfg.groundColor);
 
 	  FillRect(hdc, &rect, hBrush);
-	  DrawGrid(hdc, rect, map.getConfigPointer());
+	  DrawGrid(hdc, map.getConfigPointer());
 
 	  map.draw(rect.right, rect.bottom, hdc);
 	  EndPaint(hwnd, &ps);
@@ -199,22 +231,29 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM 
 
   case WM_PAINT: {
     PAINTSTRUCT ps;
+	  HDC hdc = BeginPaint(hwnd, &ps);
+
 		map.loadFromMapping();
-    HDC hdc = BeginPaint(hwnd, &ps);
+
     RECT rect;
     GetClientRect(hwnd, &rect);
 
     DeleteObject(hBrush);
-    hBrush = CreateSolidBrush(map.getConfigPointer()->groundColor);
+    hBrush = CreateSolidBrush(cfg.groundColor);
 
     FillRect(hdc, &rect, hBrush);
-    DrawGrid(hdc, rect, map.getConfigPointer());
+    DrawGrid(hdc, &cfg);
 
-    map.draw(rect.right, rect.bottom, hdc);
+	  map.draw(cfg.WIDTH, cfg.HEIGHT, hdc);
     EndPaint(hwnd, &ps);
   }
     return 0;
   case WM_SIZE: {
+	  RECT rect;
+	  GetClientRect(hwnd, &rect);
+
+	  cfg.WIDTH = rect.right - rect.left;
+	  cfg.HEIGHT = rect.bottom - rect.top;
     InvalidateRect(hwnd, nullptr, 0);
   }
     return 0;
@@ -223,9 +262,7 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM 
     LONG xPos = GET_X_LPARAM(lParam);
     LONG yPos = GET_Y_LPARAM(lParam);
 
-    RECT rect;
-    GetClientRect(hwnd, &rect);
-    map.update(rect.right, rect.bottom, xPos, yPos, 1);
+    map.update(cfg.WIDTH, cfg.HEIGHT, xPos, yPos, 1);
 	  EnumWindows(EnumWindowsProc, 0);
 	  //InvalidateRect(nullptr, nullptr, FALSE);
   }
@@ -236,9 +273,7 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM 
     LONG xPos = GET_X_LPARAM(lParam);
     LONG yPos = GET_Y_LPARAM(lParam);
 
-    RECT rect;
-    GetClientRect(hwnd, &rect);
-    map.update(rect.right, rect.bottom, xPos, yPos, 2);
+    map.update(cfg.WIDTH, cfg.HEIGHT, xPos, yPos, 2);
 	  EnumWindows(EnumWindowsProc, 0);
 	  //InvalidateRect(nullptr, nullptr, FALSE);
   }
@@ -246,47 +281,35 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM 
     return 0;
 
   case WM_KEYDOWN:
-    switch (wParam) {
+	  switch (wParam) {
 
-    case VK_ESCAPE:PostQuitMessage(0);
-      break;
+	  case VK_ESCAPE:PostQuitMessage(0);
+		  break;
 
-    case 'Q':
-      if (GetKeyState(VK_CONTROL)) {
-        PostQuitMessage(0);
-      }
-      break;
+	  case 'Q':
+		  if (GetKeyState(VK_CONTROL) < 0) {
+			  PostQuitMessage(0);
+		  }
+		  break;
 
-    case VK_CONTROL:
-      if (GetKeyState('Q')) {
-        PostQuitMessage(0);
-      }
-      break;
+	  case VK_RETURN: ChangeBackgroundColor(hwnd, &cfg);
+		  break;
 
-    case VK_RETURN: ChangeBackgroundColor(hwnd, map.getConfigPointer());
-      break;
+	  case 'C':
+		  if (GetKeyState(VK_SHIFT) < 0) {
+			  ShellExecute(nullptr, "open", "notepad.exe",
+			               nullptr, nullptr, SW_SHOWNORMAL);
+		  }
+		  break;
 
-    case VK_SHIFT:
-      if (GetKeyState('C')) {
-        ShellExecute(nullptr, "open", "notepad.exe",
-                     nullptr, nullptr, SW_SHOWNORMAL);
-      }
-      break;
+	  }
 
-    case 'C':
-      if (GetKeyState(VK_SHIFT)) {
-        ShellExecute(nullptr, "open", "notepad.exe",
-                     nullptr, nullptr, SW_SHOWNORMAL);
-      }
-      break;
-    }
-
-    return 0;
+	  return 0;
 
   case WM_MOUSEWHEEL: {
     int delta = (GET_WHEEL_DELTA_WPARAM(wParam) > 0) ? (5) : (-5);
     ChangeGridColor(delta, map.getConfigPointer());
-    InvalidateRect(nullptr, nullptr, 0);
+    InvalidateRect(hwnd, nullptr, 0);
   }
     return 0;
   }
