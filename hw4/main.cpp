@@ -47,7 +47,7 @@ int main(int argc, char *argv[]) {
 		break;
 	}
 
-	cfg.N = n;
+	cfg.N = (n == -1)?(cfg.N):(n);
 
   BOOL bMessageOk;
   MSG message;            /* Here message to the application are saved */
@@ -139,41 +139,38 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM 
 
 	/* handle the messages */
   switch (message) {
-	case WM_QUIT:
-		cfg.WIDTH = xSize;
-		cfg.HEIGHT = ySize;
-		return 0;
 
-  case WM_DESTROY: PostQuitMessage(0);
+  case WM_DESTROY: {
+    RECT rect;
+    GetWindowRect(hwnd, &rect);
+		cfg.WIDTH = rect.right - rect.left;
+		cfg.HEIGHT = rect.bottom - rect.top;
+    PostQuitMessage(0);
+    } 
     return 0;
 
-  case WM_ERASEBKGND:
-		return 0;
 
   case WM_PAINT: {
     PAINTSTRUCT ps;
     HDC hdc = BeginPaint(hwnd, &ps);
 
-    RECT rect;
-    GetClientRect(hwnd, &rect);
-
-    DeleteObject(hBrush);
     hBrush = CreateSolidBrush(cfg.groundColor);
-
-    FillRect(hdc, &rect, hBrush);
     DrawGrid(hdc, &cfg);
 
     map.draw(cfg.WIDTH, cfg.HEIGHT, hdc);
+
+    DeleteObject(hBrush);
     EndPaint(hwnd, &ps);
   }
     return 0;
+    
   case WM_SIZE: {
 	  RECT rect;
 	  GetClientRect(hwnd, &rect);
 
 	  cfg.WIDTH = rect.right - rect.left;
 	  cfg.HEIGHT = rect.bottom - rect.top;
-	  InvalidateRect(hwnd, nullptr, 0);
+	  InvalidateRect(hwnd, nullptr, TRUE);
   }
 	  return 0;
 
@@ -182,7 +179,7 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM 
     LONG yPos = GET_Y_LPARAM(lParam);
 
     map.update(cfg.WIDTH, cfg.HEIGHT, xPos, yPos, 1);
-    InvalidateRect(hwnd, nullptr, 0);
+    InvalidateRect(hwnd, nullptr, TRUE);
   }
 
     return 0;
@@ -226,7 +223,7 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM 
   case WM_MOUSEWHEEL: {
     int delta = (GET_WHEEL_DELTA_WPARAM(wParam) > 0) ? (5) : (-5);
     ChangeGridColor(delta, &cfg);
-    InvalidateRect(hwnd, nullptr, 0);
+    InvalidateRect(hwnd, nullptr, TRUE);
   }
     return 0;
   }

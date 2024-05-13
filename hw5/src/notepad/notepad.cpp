@@ -138,7 +138,7 @@ void ChangeBackgroundColor(HWND hwnd, Config* cfg) {
 	HBRUSH Brush = CreateSolidBrush(cfg->groundColor);
 	ULONG_PTR DelBrush = SetClassLongPtr(hwnd, GCLP_HBRBACKGROUND, (LONG_PTR)Brush);
 	DeleteObject(HGDIOBJ(DelBrush));
-	InvalidateRect(hwnd, nullptr, 0);
+	InvalidateRect(hwnd, nullptr, TRUE);
 }
 
 void ChangeGridColor(int delta, Config* cfg) {

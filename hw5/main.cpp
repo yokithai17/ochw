@@ -43,15 +43,16 @@ BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam);
 /**************************** MAIN ****************************************************/
 
 int main(int argc, char *argv[]) {
+	/*
 	int loadConfig = 0;
-
+	
 	if (argc > 1) {
 		cfg.N = std::strtol(argv[1], nullptr, 10);
 		if (argc > 3) {
 			loadConfig = std::strtol(argv[2], nullptr, 10);
 		}
 	}
-
+	
 	switch (loadConfig) {
 	case 1: {
 		StreamLoader::load("./config.txt", &cfg);
@@ -70,6 +71,7 @@ int main(int argc, char *argv[]) {
 	}
 		break;
 	}
+	*/
 
 	HANDLE hMapFileTMP = CreateFileMapping(
 			INVALID_HANDLE_VALUE,
@@ -164,7 +166,7 @@ int main(int argc, char *argv[]) {
   UnregisterClass(szWinClass, hThisInstance);
   DeleteObject(hBrush);
 
-	/* store data to file point.txt */
+	/* store data to file point.txt 
 	switch (loadConfig) {
 	case 1: {
 		StreamSaver("./config.txt").save(&cfg);
@@ -183,11 +185,13 @@ int main(int argc, char *argv[]) {
 	}
 		break;
 	}
+	*/
 
   UnmapViewOfFile(pBuf);
-	UnmapViewOfFile(pBufTMP);
+  UnmapViewOfFile(pBufTMP);
   CloseHandle(hMapFile);
-	CloseHandle(hMapFileTMP);
+  CloseHandle(hMapFileTMP);
+
   return 0;
 }
 /********************************************************************************************/
@@ -196,11 +200,12 @@ int main(int argc, char *argv[]) {
 
 LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
   static ShapeMap map(R"(.\points.txt)", &cfg, pBuf);
+  static LONG xSize;
+  static LONG ySize;
 
-  switch (message)                  /* handle the messages */
-  {
-  case WM_DESTROY:
-  {
+  /* handle the messages */
+  switch (message) {              
+  case WM_DESTROY: {
 	  RECT rect;
 	  GetWindowRect(hwnd, &rect);
 	  cfg.WIDTH = rect.right - rect.left;
@@ -208,53 +213,30 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM 
   }
 		PostQuitMessage(0);       /* send a WM_QUIT to the message queue */
     return 0;
-
-  case WM_ERASEBKGND: {
-	  PAINTSTRUCT ps;
-	  HDC hdc = BeginPaint(hwnd, &ps);
-
-	  map.loadFromMapping();
-
-	  RECT rect;
-	  GetClientRect(hwnd, &rect);
-
-	  DeleteObject(hBrush);
-	  hBrush = CreateSolidBrush(cfg.groundColor);
-
-	  FillRect(hdc, &rect, hBrush);
-	  DrawGrid(hdc, map.getConfigPointer());
-
-	  map.draw(rect.right, rect.bottom, hdc);
-	  EndPaint(hwnd, &ps);
-	}
-		return 0;
-
+    
   case WM_PAINT: {
     PAINTSTRUCT ps;
-	  HDC hdc = BeginPaint(hwnd, &ps);
+    HDC hdc = BeginPaint(hwnd, &ps);
 
-		map.loadFromMapping();
-
-    RECT rect;
-    GetClientRect(hwnd, &rect);
-
-    DeleteObject(hBrush);
+    map.loadFromMapping();
+    
     hBrush = CreateSolidBrush(cfg.groundColor);
-
-    FillRect(hdc, &rect, hBrush);
     DrawGrid(hdc, &cfg);
 
-	  map.draw(cfg.WIDTH, cfg.HEIGHT, hdc);
+    map.draw(cfg.WIDTH, cfg.HEIGHT, hdc);
+
+    DeleteObject(hBrush);
     EndPaint(hwnd, &ps);
   }
     return 0;
-  case WM_SIZE: {
-	  RECT rect;
-	  GetClientRect(hwnd, &rect);
 
-	  cfg.WIDTH = rect.right - rect.left;
-	  cfg.HEIGHT = rect.bottom - rect.top;
-    InvalidateRect(hwnd, nullptr, 0);
+  case WM_SIZE: {
+    RECT rect;
+    GetClientRect(hwnd, &rect);
+
+    cfg.WIDTH = rect.right - rect.left;
+    cfg.HEIGHT = rect.bottom - rect.top;
+    InvalidateRect(hwnd, nullptr, TRUE);
   }
     return 0;
 
@@ -263,7 +245,7 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM 
     LONG yPos = GET_Y_LPARAM(lParam);
 
     map.update(cfg.WIDTH, cfg.HEIGHT, xPos, yPos, 1);
-	  EnumWindows(EnumWindowsProc, 0);
+	  EnumWindows(EnumWindowsProc, TRUE);
 	  //InvalidateRect(nullptr, nullptr, FALSE);
   }
 
@@ -274,7 +256,7 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM 
     LONG yPos = GET_Y_LPARAM(lParam);
 
     map.update(cfg.WIDTH, cfg.HEIGHT, xPos, yPos, 2);
-	  EnumWindows(EnumWindowsProc, 0);
+	  EnumWindows(EnumWindowsProc, TRUE);
 	  //InvalidateRect(nullptr, nullptr, FALSE);
   }
 
@@ -309,7 +291,7 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM 
   case WM_MOUSEWHEEL: {
     int delta = (GET_WHEEL_DELTA_WPARAM(wParam) > 0) ? (5) : (-5);
     ChangeGridColor(delta, map.getConfigPointer());
-    InvalidateRect(hwnd, nullptr, 0);
+    InvalidateRect(hwnd, nullptr, TRUE);
   }
     return 0;
   }

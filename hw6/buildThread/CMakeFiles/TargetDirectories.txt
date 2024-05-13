@@ -1,0 +1,3 @@
+C:/Users/cl/ochw/hw6/buildThread/CMakeFiles/WarThread.dir
+C:/Users/cl/ochw/hw6/buildThread/CMakeFiles/edit_cache.dir
+C:/Users/cl/ochw/hw6/buildThread/CMakeFiles/rebuild_cache.dir
