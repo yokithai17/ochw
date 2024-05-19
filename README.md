@@ -14,3 +14,11 @@
 Лаб. 5: Межпроцессная коммуникация
 
 [solution](https://github.com/yokithai17/ochw/tree/main/hw5)
+
+Лаб. 6: Синхронизация потоков
+
+[solution](https://github.com/yokithai17/ochw/tree/main/hw6)
+
+Лаб. 7: Процессы и потоки
+
+[solution](https://github.com/yokithai17/ochw/tree/main/hw7)

@@ -4,4 +4,4 @@ project(notepad)
 
 set(SOURCE_LIB "${PROJECT_SOURCE_DIR}/notepad.cpp")
 
-add_library(notepad SHARED ${SOURCE_LIB} ${coolApp_SOURCE_DIR}/include/notepad.h)
+add_library(notepad STATIC ${SOURCE_LIB} ${coolApp_SOURCE_DIR}/include/notepad.h)

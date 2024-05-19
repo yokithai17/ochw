@@ -11,82 +11,67 @@
 
 #include "config.h"
 
+
 /******************************** Stream *****************************************/
+class ISaver {
+protected:
+	ConfigHandler cfgHNDL_;
 
-class StreamSaver {
-private:
-	std::ofstream out;
-
-	void save_helper() {};
-
-	template<typename Head, typename... Tail>
-	void save_helper(const Head &head, const Tail &... tail) {
-		out << head << '\n';
-		save_helper(tail...);
-	}
+	explicit ISaver();
 
 public:
+	explicit ISaver(const Config& cfg): cfgHNDL_(cfg) {}
 
-	explicit StreamSaver(std::string path);
+	virtual ~ISaver(){}
 
-	~StreamSaver();
+	virtual void save() const = 0;
+};
+/****************************** StreamSaver *******************************************/
 
-	void save(Config* cfg) {
-		save_helper(
-				cfg->N,
-				cfg->WIDTH,
-				cfg->HEIGHT,
-				cfg->groundColor,
-				cfg->gridColor
-				);
-	}
+class StreamSaver : public ISaver {
+private:
+	std::string path_;
 
+public:
+	explicit StreamSaver(const std::string& path, const Config& cfg): ISaver(cfg), path_(path) {}
+
+	void save() const final;
 };
 
 /****************************** C-style *******************************************/
 
-class CstyleSaver {
+class CstyleSaver : public ISaver {
 private:
-	FILE* fl;
-	bool isOpened;
+	std::string path_;
 
-	CstyleSaver() = default;
 public:
-	explicit CstyleSaver(const std::string& str);
+	explicit CstyleSaver(const std::string& path, const Config& cfg): ISaver(cfg), path_(path) {}
 
-	~CstyleSaver();
-
-	void save(Config* cfg);
+	void save() const final;
 };
 
 /***************************** Wmaping ********************************************/
 
-class MapSaver {
+class MapSaver : public ISaver {
 private:
-	std::string path;
-
-	MapSaver() = default;
+	std::string path_;
 
 public:
-	explicit MapSaver(std::string  path);
+	explicit MapSaver(const std::string& path, const Config& cfg) : ISaver(cfg), path_(path) {}
 
-	~MapSaver();
-
-	void save(Config* cfg);
+	void save() const final;
 };
 
 /******************************** WINAPI *****************************************/
 
-class wFileSaver {
+class wFileSaver : public ISaver {
 private:
-	std::string path;
+	std::string path_;
 
-	wFileSaver() = default;
 public:
-	explicit wFileSaver(std::string path);
+	explicit wFileSaver(const std::string& path, const Config& cfg) : ISaver(cfg), path_(path) {}
 
-	void save(Config* cfg);
+	void save() const final;
 };
-
 
 #endif //COOLAPP__SAVER_H

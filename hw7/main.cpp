@@ -4,33 +4,91 @@
 #include <tchar.h>
 #include <random>
 #include <ctime>
-#include <utility>
 #include <vector>
-#include <fstream>
 #include <windowsX.h.>
-#include <string>
+
+#define BUFF_SIZE 1024
+#define PLAYER_BUFF_SIZE 10
+
+#define STACK_SIZE (64*1024)
+
+#define CROSS_PLAYER 1
+#define CIRCLE_PLAYER 2
+#define ERROR_PLAYER -1
+
+HANDLE hMapFilePlayer = CreateFileMapping(
+		INVALID_HANDLE_VALUE,
+		NULL,
+		PAGE_READWRITE,
+		0,
+		PLAYER_BUFF_SIZE,
+		_T("ChatLine9847589345673246758")
+);
+
+char* pBufPlayer = (char*)MapViewOfFile(
+		hMapFilePlayer,
+		FILE_MAP_ALL_ACCESS,
+		0,
+		0,
+		BUFF_SIZE
+);
+
+HANDLE hMapFile = CreateFileMapping(
+		INVALID_HANDLE_VALUE,
+		NULL,
+		PAGE_READWRITE,
+		0,
+		BUFF_SIZE,
+		_T("ChatLine9847589345673246759")
+);
+
+char* pBuf = (char*)MapViewOfFile(
+		hMapFile,
+		FILE_MAP_ALL_ACCESS,
+		0,
+		0,
+		BUFF_SIZE
+);
 
 /******************* GLOBAL VARIABLES ****************************************/
-int N = 10; /* Size of the grid*/
+int N = 3; /* Size of the grid*/
 const int COLOR_INCREMENT = 3; /* smooth color changer constanta (magic number) */
 const TCHAR szWinClass[] = _T("Win32SampleApp");
 const TCHAR szWinName[] = _T("Win32SampleWindow");
 COLORREF gridColor = RGB(255, 0, 0); /* default grid color */
 COLORREF groundColor = RGB(0, 0, 255); /* default background color */
-/* HWND hwnd;               This is the handle for our window */
+//HWND hwnd;               /* This is the handle for our window */
 HBRUSH hBrush;           /* Current brush */
+
+int player;
+/******************************* Thread Stuff ************************************/
+
+HANDLE mtx;
+HANDLE threadHNDL;
+bool pauseThread;
+
+int priority;
+bool flagAnim = true;
+
+
+void colorChanger(COLORREF* colorRef, long delta);
+
 /*****************************************************************************/
 
 /******************************** function ************************************/
 LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
+
+DWORD WINAPI Paint(void* hwnd);
+
+BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam);
+
+void RunNotepad();
 
 void DrawGrid(HDC hdc, LONG xSize, LONG ySize);
 
 void DrawCross(HDC hdc, LONG posX, LONG posY, LONG step);
 
 void DrawCircle(HDC hdc, LONG left, LONG top, LONG right, LONG bottom);
-
-void ChangeBackgroundColor(HWND hwnd);
 
 void ChangeGridColor(int delta);
 
@@ -40,75 +98,60 @@ void SmoothChangeGridColor(int delta);
 /******************************* Helper functions ******************************/
 template<class T>
 const T& mmin(const T& a, const T& b) {
-    return (b < a) ? b : a;
+  return (b < a) ? b : a;
 }
 
 
 template<class T>
 const T& mmax(const T& a, const T& b) {
-    return (a < b) ? b : a;
+  return (a < b) ? b : a;
 }
 
 /*******************************************************************************/
-
 /******************************* ShapeMap ***************************************/
 
 /* used to store info about points */
 class ShapeMap {
 private:
+	char* pBuf_;
+	int steps_;
   std::vector<std::vector<int>> map_;
-  std::string path_;
 
-  explicit ShapeMap() = default;
+	int checkDiagonal() const;
+
+	int checkLines() const;
+
+	std::pair<int, int> getPos(int width, int height, int x, int y) const;
+
+
 
 public:
+	explicit ShapeMap() = default;
 
-  explicit ShapeMap(int n, std::string path) :
-      map_(std::vector<std::vector<int>>(n, std::vector<int>(n, 0)))
-      , path_(std::move(path))
-  {};
+  explicit ShapeMap(int n, char* pBuf) :
+			pBuf_(pBuf)
+			, steps_(0)
+			, map_(std::vector<std::vector<int>>(n, std::vector<int>(n, 0))) {};
 
   ~ShapeMap() = default;
 
-  void update(int width, int height,
-              int x, int y, int status) {
-		double cellWidth = width / static_cast<double>(N);
-		double cellHeight = height / static_cast<double>(N);
+  void update(int width, int height, int x, int y, int status);
 
-		int posX = std::floor(x / cellWidth);
-		int posY = std::floor(y / cellHeight);
+  void draw(LONG width, LONG height, HDC hdc) const;
 
-		posX = mmin(posX, N - 1);
-		posY = mmin(posY, N - 1);
+	bool canChange(int width, int height, int x, int y) const;
 
-	  map_[posX][posY] = status;
-  }
+	void loadFromMapping();
 
-  void draw(LONG width, LONG height, HDC hdc) const {
-    LONG stepX = width / N;
-    LONG stepY = height / N;
-    for (int i = 0; i < N; ++i) {
-      for (int j = 0; j < N; ++j) {
-        LONG posX = i * width / N + stepX / 2;
-        LONG posY = j * height / N + stepY / 2;
-        switch (map_[i][j]) {
-        case 1: {
-          DrawCross(hdc, posX, posY, mmin(stepY, stepX) / 3);
-        }
-          break;
-        case 2: {
-          LONG step = mmin(stepY, stepX) / 3;
-          DrawCircle(hdc, posX - step, posY + step, posX + step, posY - step);
-        }
-          break;
-        }
-      }
-    }
-  }
+	int getSteps() const;
+
+	void incSteps();
+
+	int checkGameOver() const;
 
 };
 /***********************************************************************************/
-
+ShapeMap* pMap = nullptr;
 /**************************** MAIN *************************************************/
 
 int main(int argc, char *argv[]) {
@@ -117,6 +160,29 @@ int main(int argc, char *argv[]) {
   } else {
     N = 10;
   }
+
+	static ShapeMap map = ShapeMap(N, pBuf);
+	pMap = &map;
+
+	char tmp = pBufPlayer[0];
+	if (tmp == '2') {
+		player = ERROR_PLAYER;
+	} else if (tmp == '1'){
+		player = CIRCLE_PLAYER;
+		pBufPlayer[0] = '2';
+	} else {
+		player = CROSS_PLAYER;
+		pBufPlayer[0] = '1';
+	}
+
+	if (player == ERROR_PLAYER) {
+		UnmapViewOfFile(pBuf);
+		UnmapViewOfFile(pBufPlayer);
+		CloseHandle(hMapFile);
+		CloseHandle(hMapFilePlayer);
+
+		return 0;
+	}
 
   BOOL bMessageOk;
   MSG message;            /* Here message to the application are saved */
@@ -158,6 +224,8 @@ int main(int argc, char *argv[]) {
   /* Make the window visible on the screen */
   ShowWindow(hwnd, nCmdShow);
 
+	threadHNDL = CreateThread(NULL, STACK_SIZE, Paint, hwnd, 0, NULL);
+
   /* Run the message loop. It will run until GetMessage() returns 0 */
   while ((bMessageOk = GetMessage(&message, nullptr, 0, 0)) != 0) {
     if (bMessageOk == -1) {
@@ -175,6 +243,14 @@ int main(int argc, char *argv[]) {
   UnregisterClass(szWinClass, hThisInstance);
   DeleteObject(hBrush);
 
+	CloseHandle(threadHNDL);
+	CloseHandle(mtx);
+
+	UnmapViewOfFile(pBuf);
+	UnmapViewOfFile(pBufPlayer);
+	CloseHandle(hMapFile);
+	CloseHandle(hMapFilePlayer);
+
   return 0;
 }
 /********************************************************************************************/
@@ -182,27 +258,17 @@ int main(int argc, char *argv[]) {
 /***************************** WND PROCEDURE ************************************************/
 
 LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
-  static ShapeMap map(N, R"(.\points.txt)");
 	static LONG xSize;
 	static LONG ySize;
 
   switch (message)                  /* handle the messages */
   {
-  case WM_DESTROY:PostQuitMessage(0);       /* send a WM_QUIT to the message queue */
+	/* send a WM_QUIT to the message queue */
+  case WM_DESTROY: {
+		PostQuitMessage(0);
+	}
     return 0;
-    
-  case WM_PAINT: {
-    PAINTSTRUCT ps;
-    HDC hdc = BeginPaint(hwnd, &ps);
-    
-    hBrush = CreateSolidBrush(groundColor);
-    DrawGrid(hdc, xSize, ySize);
 
-    map.draw(xSize, ySize, hdc);
-    
-    DeleteObject(hBrush);
-    EndPaint(hwnd, &ps);
-  }
     return 0;
   case WM_SIZE: {
 	  RECT rect;
@@ -214,25 +280,26 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM 
   }
     return 0;
 
-  case WM_RBUTTONDOWN: {
-	  int xPos = GET_X_LPARAM(lParam);
-	  int yPos = GET_Y_LPARAM(lParam);
-
-    map.update(xSize, ySize, xPos, yPos, 1);
-    InvalidateRect(hwnd, nullptr, TRUE);
-  }
-
-    return 0;
-
   case WM_LBUTTONDOWN: {
     int xPos = GET_X_LPARAM(lParam);
     int yPos = GET_Y_LPARAM(lParam);
 
-    map.update(xSize, ySize, xPos, yPos, 2);
-    InvalidateRect(hwnd, nullptr, 0);
-  }
+	  int status = pMap->getSteps() ? (2) : (1);
 
-    return 0;
+		if (player != status) {
+			MessageBox(hwnd, _T("NOT UR TURN"), _T(""), MB_OK);
+			return 0;
+		}
+
+		if (pMap->canChange(xSize, ySize, xPos, yPos)) {
+			pMap->update(xSize, ySize, xPos, yPos, status);
+			pMap->incSteps();
+			EnumWindows(EnumWindowsProc, TRUE);
+		}
+
+	  pMap->checkGameOver();
+  }
+	return 0;
 
   case WM_KEYDOWN:
     switch (wParam) {
@@ -246,16 +313,14 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM 
       }
       break;
 
-    case VK_RETURN: ChangeBackgroundColor(hwnd);
+    case VK_RETURN:
       break;
 
     case 'C':
       if (GetKeyState(VK_SHIFT) < 0) {
-        ShellExecute(nullptr, "open", "notepad.exe",
-                     nullptr, nullptr, SW_SHOWNORMAL);
+        RunNotepad();
       }
       break;
-
     }
 
     return 0;
@@ -309,19 +374,146 @@ void DrawCross(HDC hdc, LONG posX, LONG posY, LONG step) {
 void DrawCircle(HDC hdc, LONG left, LONG top, LONG right, LONG bottom) {
   Ellipse(hdc, left, top, right, bottom);
 }
+/************************************** SHAPE MAP **************************************************/
+void ShapeMap::draw(LONG width, LONG height, HDC hdc) const {
+    LONG stepX = width / N;
+    LONG stepY = height / N;
+
+    for (int i = 0; i < N; ++i) {
+      for (int j = 0; j < N; ++j) {
+        LONG posX = i * width / N + stepX / 2;
+        LONG posY = j * height / N + stepY / 2;
+        switch (map_[i][j]) {
+          case 1: {
+            DrawCross(hdc, posX, posY, mmin(stepY, stepX) / 3);
+          }
+            break;
+          case 2: {
+            LONG step = mmin(stepY, stepX) / 3;
+            DrawCircle(hdc, posX - step, posY + step, posX + step, posY - step);
+          }
+            break;
+        }
+      }
+    }
+}
+
+std::pair<int, int> ShapeMap::getPos(int width, int height, int x, int y) const {
+	double cellWidth = width / static_cast<double>(N);
+	double cellHeight = height / static_cast<double>(N);
+
+	int posX = std::floor(x / cellWidth);
+	int posY = std::floor(y / cellHeight);
+
+	posX = mmin(posX, N - 1);
+	posY = mmin(posY, N - 1);
+
+	return {posX, posY};
+}
+
+void ShapeMap::loadFromMapping() {
+	int size =  map_.size();
+	for (int i = 0; i < size; ++i) {
+		for (int j = 0; j < size; ++j) {
+			map_[i][j] = static_cast<int>(pBuf_[i + size * j]) - static_cast<int>('0');
+		}
+	}
+}
+
+void ShapeMap::update(int width, int height,
+                      int x, int y, int status) {
+	std::pair<int, int> point = getPos(width, height, x, y);
+
+	map_[point.first][point.second] = status;
+}
+
+bool ShapeMap::canChange(int width, int height, int x, int y) const {
+	std::pair<int, int> point = getPos(width, height, x, y);
+
+	return map_[point.first][point.second] == 0;
+}
+
+void ShapeMap::incSteps() {
+	++steps_;
+}
+
+int ShapeMap::getSteps() const {
+	return steps_;
+}
+
+int ShapeMap::checkDiagonal() const {
+	int n = map_.size();
+	int x = 0;
+
+	for (int i = 0; i < n; ++i) {
+		x += map_[i][i];
+	}
+
+	if (x % n == 0) {
+		return x / n;
+	}
+
+	x = 0;
+	for (int i = 0; i < n; ++i) {
+		x += map_[i][n - 1 + i];
+	}
+
+	if (x % n == 0) {
+		return x / n;
+	}
+
+	return 0;
+}
+
+int ShapeMap::checkLines() const {
+	int n = map_.size();
+
+	for (int i = 0; i < n; ++i) {
+		int x = 0;
+		for (int j = 0; j < n; ++j) {
+			x += map_[i][j];
+		}
+		if (x % n == 0) {
+			return x / n;
+		}
+	}
+
+	for (int i = 0; i < n; ++i) {
+		int x = 0;
+		for (int j = 0; j < n; ++j) {
+			x += map_[j][i];
+		}
+		if (x % n == 0) {
+			return x / n;
+		}
+	}
+
+	return 0;
+}
+
+int ShapeMap::checkGameOver() const {
+	if (this->checkLines() == 1 || this->checkDiagonal() == 1) {
+		return 1;
+	}
+
+	if (this->checkLines() == 2 || this->checkDiagonal() == 2) {
+		return  2;
+	}
+
+	return 0;
+}
 /*********************************************************************************************/
 
-/***************************** CHANGE COLOR FUNCTIONS*****************************************/
-
-void ChangeBackgroundColor(HWND hwnd) {
-	std::mt19937 engine;
-	engine.seed(std::time(nullptr));
-  groundColor = RGB(engine() % 256, engine() % 256, engine() % 256);
-	HBRUSH Brush = CreateSolidBrush(groundColor);
-	ULONG_PTR DelBrush = SetClassLongPtr(hwnd, GCLP_HBRBACKGROUND, (LONG_PTR)Brush);
-	DeleteObject(HGDIOBJ(DelBrush));
-  InvalidateRect(hwnd, nullptr, TRUE);
+void RunNotepad(void) {
+	STARTUPINFO sInfo;
+	PROCESS_INFORMATION pInfo;
+	ZeroMemory(&sInfo, sizeof(STARTUPINFO));
+	CreateProcess(_T("C:\\Windows\\Notepad.exe"),
+                    NULL, NULL, NULL, FALSE, 0,
+                    NULL, NULL, &sInfo, &pInfo);
 }
+
+/***************************** CHANGE COLOR FUNCTIONS*****************************************/
 
 void ChangeGridColor(int delta) {
   static DWORD lastScrollTime = 0;
@@ -343,4 +535,99 @@ void SmoothChangeGridColor(int delta) {
 
   gridColor = RGB(r, g, b);
 }
+
+void colorChanger(COLORREF* colorRef, long delta) {
+  long r = GetRValue(*colorRef);
+  long g = GetGValue(*colorRef);
+  long b = GetBValue(*colorRef);
+
+  struct Color {
+    long r;
+    long g;
+    long b;
+  };
+
+  Color color = { r, g, b };
+
+	if(delta > 0) {
+		if (color.r >= 255 && color.g < 255 && color.b <= 0)
+			color.g += delta;
+		else if (color.r > 0 && color.g >= 255 && color.b <= 0)
+			color.r -= delta;
+		else if (color.r <= 0 && color.g >= 255 && color.b < 255)
+			color.b += delta;
+		else if (color.r <= 0 && color.g > 0 && color.b >= 255)
+			color.g -= delta;
+		else if (color.r < 255 && color.g <= 0 && color.b >= 255)
+			color.r += delta;
+		else if (color.r >= 255 && color.g <= 0 && color.b > 0)
+			color.b -= delta;
+	} else {
+		if (color.r >= 255 && color.g > 0 && color.b <= 0)
+			color.g += delta;
+		else if (color.r < 255 && color.g >= 255 && color.b <= 0)
+			color.r -= delta;
+		else if (color.r <= 0 && color.g >= 255 && color.b > 0)
+			color.b += delta;
+		else if (color.r <= 0 && color.g < 255 && color.b >= 255)
+			color.g -= delta;
+		else if (color.r > 0 && color.g <= 0 && color.b >= 255)
+			color.r += delta;
+		else if (color.r >= 255 && color.g <= 0 && color.b < 255)
+			color.b -= delta;
+	}
+
+	color.r = (color.r < 0) ? (255) : ((color.r > 255) ? 0 : color.r);
+	color.g = (color.g < 0) ? (255) : ((color.g > 255) ? 0 : color.g);
+	color.b = (color.b < 0) ? (255) : ((color.b > 255) ? 0 : color.b);
+
+  *colorRef = RGB(color.r, color.b, color.b);
+}
 /***************************************************************************************/
+
+DWORD WINAPI Paint(void* hWnd) {
+	HWND hwnd = (HWND)hWnd;
+
+	while (true) {
+			if (pauseThread) {
+				WaitForSingleObject(mtx, INFINITE);
+			}
+
+			colorChanger(&groundColor, 5);
+			ULONG_PTR DelBrush = SetClassLongPtr(hwnd, GCLP_HBRBACKGROUND, (LONG_PTR)CreateSolidBrush(groundColor));
+			DeleteObject(HGDIOBJ(DelBrush));
+
+
+			InvalidateRect(hwnd, nullptr, TRUE);
+
+      RECT rect;
+	    GetClientRect(hwnd, &rect);
+
+      PAINTSTRUCT ps;
+      HDC hdc = BeginPaint(hwnd, &ps);
+
+      DrawGrid(hdc, rect.right, rect.bottom);
+
+			pMap->draw(rect.right, rect.bottom, hdc);
+			pMap->loadFromMapping();
+
+			DeleteObject(hdc);
+			EndPaint(hwnd, &ps);
+			ReleaseMutex(mtx);
+
+			Sleep(50);
+	}
+
+	return 0;
+}
+
+BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam) {
+	TCHAR className[256];
+	GetClassName(hwnd, className, sizeof(className));
+
+	if (_tcscmp(szWinClass, szWinClass) == 0) {
+		RedrawWindow(hwnd, nullptr, nullptr, RDW_INVALIDATE | RDW_FRAME | RDW_ALLCHILDREN);
+	}
+
+	return TRUE;
+}

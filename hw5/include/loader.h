@@ -10,27 +10,72 @@
 
 #include "config.h"
 
+/******************************** ILoader *****************************************/
+class ILoader {
+protected:
+	ConfigHandler cfgHNDL_;
+
+	Config loadHelper(std::istream& in);
+	
+	virtual std::string loadText() = 0;
+
+public:
+	explicit ILoader();
+
+	explicit ILoader(const Config& cfg): cfgHNDL_(cfg) {}
+
+	virtual ~ILoader(){}
+
+	virtual Config load();
+};
+
 /******************************** Stream *****************************************/
-struct StreamLoader {
-	static void load(const std::string& path,Config* cfg);
+class StreamLoader : public ILoader {
+private:
+	std::string path_;
+
+	std::string loadText() final {}
+
+public:
+	explicit StreamLoader(const std::string& path, const Config& cfg): ILoader(cfg), path_(path) {}
+
+	Config load() final;
 };
 
 /****************************** C-style *******************************************/
 
-struct CstyleLoader {
-	static void load(const std::string& path, Config* cfg);
+class CstyleLoader : public ILoader {
+private:
+	std::string path_;
+
+	std::string loadText() final;
+
+public:
+	explicit CstyleLoader(const std::string& path, const Config& cfg): ILoader(cfg), path_(path) {}
 };
 
 /***************************** Wmapoing ********************************************/
 
-struct MapLoader {
-	static void load(const std::string& path, Config* cfg);
+class MapLoader : public ILoader {
+private:
+	std::string path_;
+
+	std::string loadText() final;
+
+public:
+	explicit MapLoader(const std::string& path, const Config& cfg) : ILoader(cfg), path_(path) {}
 };
 
 /******************************** WINAPI *****************************************/
 
-struct wFileLoader {
-	static void load(const std::string& path, Config* cfg);
+class wFileLoader : public ILoader  {
+private:
+	std::string path_;
+
+	std::string loadText() final;
+
+public:
+	explicit wFileLoader(const std::string& path, const Config& cfg) : ILoader(cfg), path_(path) {}
 };
 
 #endif //LOADER_H

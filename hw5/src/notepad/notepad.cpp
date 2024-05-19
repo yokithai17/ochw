@@ -1,81 +1,68 @@
 #include "notepad.h"
 
-
+#include <utility>
+#include <cmath>
+#include <random>
+#include <ctime>
 
 /*************************** ShapeMap ********************************************/
 
-	ShapeMap::ShapeMap(std::string path, Config* cfg, char* pBuf) :
-			path_(std::move(path))
-			, cfg_(cfg)
-			, map_(std::vector<std::vector<int>>(cfg_->N, std::vector<int>(cfg_->N, 0)))
-			, pBuf_(pBuf)
-	{
-		if (pBuf_[0] >= '0' && pBuf_[0] <= '2') {
-			size_t size = map_.size();
-			for (int i = 0; i < size; ++i) {
-				for (int j = 0; j < size; ++j) {
-					map_[i][j] = static_cast<int>(pBuf_[i + j * size]) - static_cast<char>('0');
-				}
+ShapeMap::ShapeMap(std::string path, Config* cfg, char* pBuf) :
+		path_(std::move(path))
+		, cfg_(cfg)
+		, map_(std::vector<std::vector<int>>(cfg_->N, std::vector<int>(cfg_->N, 0)))
+		, pBuf_(pBuf)
+{};
+
+void ShapeMap::update(int width, int height,
+						int x, int y, int status) {
+	double cellWidth = width / static_cast<double>(cfg_->N);
+	double cellHeight = height / static_cast<double>(cfg_->N);
+
+	int posX = std::floor(x / cellWidth);
+	int posY = std::floor(y / cellHeight);
+
+	posX = mmin(posX, cfg_->N - 1);
+	posY = mmin(posY, cfg_->N - 1);
+	
+	pBuf_[posX + posY * map_.size()] = static_cast<char>(status + static_cast<int>('0'));
+	map_[posX][posY] = status;
+}
+
+void ShapeMap::draw(LONG width, LONG height, HDC hdc) const {
+	LONG stepX = width / cfg_->N;
+	LONG stepY = height / cfg_->N;
+	for (int i = 0; i < cfg_->N; ++i) {
+		for (int j = 0; j < cfg_->N; ++j) {
+			LONG posX = i * width / cfg_->N + stepX / 2;
+			LONG posY = j * height / cfg_->N + stepY / 2;
+			switch (map_[i][j]) {
+			case 1: {
+				DrawCross(hdc, posX, posY, mmin(stepY, stepX) / 3);
 			}
-		}
-		std::ofstream out("./pLog.txt");
-		out << pBuf_;
-	};
-
-	void ShapeMap::update(int width, int height,
-	                      int x, int y, int status) {
-		double cellWidth = width / static_cast<double>(cfg_->N);
-		double cellHeight = height / static_cast<double>(cfg_->N);
-
-		int posX = std::floor(x / cellWidth);
-		int posY = std::floor(y / cellHeight);
-
-		posX = mmin(posX, cfg_->N - 1);
-		posY = mmin(posY, cfg_->N - 1);
-
-		pBuf_[posX + posY * map_.size()] = static_cast<char>(status + static_cast<int>('0'));
-		map_[posX][posY] = status;
-	}
-
-	void ShapeMap::draw(LONG width, LONG height, HDC hdc) const {
-		LONG stepX = width / cfg_->N;
-		LONG stepY = height / cfg_->N;
-
-		for (int i = 0; i < cfg_->N; ++i) {
-			for (int j = 0; j < cfg_->N; ++j) {
-				LONG posX = i * width / cfg_->N + stepX / 2;
-				LONG posY = j * height / cfg_->N + stepY / 2;
-				switch (map_[i][j]) {
-				case 1: {
-					DrawCross(hdc, posX, posY, mmin(stepY, stepX) / 3);
-				}
-					break;
-				case 2: {
-					LONG step = mmin(stepY, stepX) / 3;
-					DrawCircle(hdc, posX - step, posY + step, posX + step, posY - step);
-				}
-					break;
-				}
+				break;
+			case 2: {
+				LONG step = mmin(stepY, stepX) / 3;
+				DrawCircle(hdc, posX - step, posY + step, posX + step, posY - step);
+			}
+				break;
 			}
 		}
 	}
+}
 
-	Config* ShapeMap::getConfigPointer() {
-		return this->cfg_;
-	}
+Config* ShapeMap::getConfigPointer() {
+	return this->cfg_;
+}
 
-	size_t ShapeMap::Size() const {
-		return map_.size();
-	}
-
-	void ShapeMap::loadFromMapping() {
-		int size =  map_.size();
-		for (int i = 0; i < size; ++i) {
-			for (int j = 0; j < size; ++j) {
-				map_[i][j] = static_cast<int>(pBuf_[i + size * j]) - static_cast<int>('0');
-			}
+void ShapeMap::loadFromMapping() {
+	int size =  map_.size();
+	for (int i = 0; i < size; ++i) {
+		for (int j = 0; j < size; ++j) {
+			map_[i][j] = static_cast<int>(pBuf_[i + size * j]) - static_cast<int>('0');
 		}
 	}
+}
 /*************************** helper functions ********************************************/
 
 template<class T>

@@ -24,6 +24,8 @@ HBRUSH hBrush;           /* Current brush */
 /******************************** function ************************************/
 LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
 
+void RunNotepad();
+
 void DrawGrid(HDC hdc, LONG xSize, LONG ySize);
 
 void DrawCross(HDC hdc, LONG posX, LONG posY, LONG step);
@@ -251,8 +253,7 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM 
 
     case 'C':
       if (GetKeyState(VK_SHIFT) < 0) {
-        ShellExecute(nullptr, "open", "notepad.exe",
-                     nullptr, nullptr, SW_SHOWNORMAL);
+        RunNotepad();
       }
       break;
 
@@ -310,6 +311,15 @@ void DrawCircle(HDC hdc, LONG left, LONG top, LONG right, LONG bottom) {
   Ellipse(hdc, left, top, right, bottom);
 }
 /*********************************************************************************************/
+
+void RunNotepad(void) {
+	STARTUPINFO sInfo;
+	PROCESS_INFORMATION pInfo;
+	ZeroMemory(&sInfo, sizeof(STARTUPINFO));
+	CreateProcess(_T("C:\\Windows\\Notepad.exe"),
+                    NULL, NULL, NULL, FALSE, 0,
+                    NULL, NULL, &sInfo, &pInfo);
+}
 
 /***************************** CHANGE COLOR FUNCTIONS*****************************************/
 

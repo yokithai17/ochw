@@ -3,18 +3,13 @@
 #ifndef COOLAPP__NOTEPAD_H
 #define COOLAPP__NOTEPAD_H
 
-#include <windows.h>
-
+#include <iostream>
 #include <vector>
 #include <string>
-
-#include <iostream>
-#include <fstream>
-
-#include <ctime>
 #include <utility>
-#include <cmath>
-#include <random>
+#include <fstream>
+#include <windows.h>
+#include <time.h>
 
 #include "config.h"
 
@@ -32,7 +27,7 @@ private:
 
 public:
 
-	explicit ShapeMap(std::string path, Config* cfg, char* pbuf);
+	explicit ShapeMap(std::string path, Config* cfg, char* pBuf);
 
 	~ShapeMap() = default;
 
@@ -41,8 +36,6 @@ public:
 	void draw(LONG width, LONG height, HDC hdc) const;
 
 	Config* getConfigPointer();
-
-	size_t Size() const;
 
 	void loadFromMapping();
 

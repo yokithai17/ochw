@@ -1,41 +1,61 @@
 #include "loader.h"
 
+/******************************* ILOAD ****************************************/
+
+Config ILoader::loadHelper(std::istream& in) {
+	cfgHNDL_.serialize(in);
+	return cfgHNDL_.getConfig();
+}
+
+Config ILoader::load() {
+	std::string text = loadText();
+	std::istringstream in(text);
+	return loadHelper(in);
+}
+
+/**********************************************************************************/
+
 /******************************** Stream *****************************************/
-void StreamLoader::load(const std::string& path, Config *cfg) {
-	std::ifstream in(path);
-	in >> cfg->N;
-	in >> cfg->WIDTH;
-	in >> cfg->HEIGHT;
-	in >> cfg->groundColor;
-	in >> cfg->gridColor;
+Config StreamLoader::load() {
+	std::ifstream in(path_);
+	auto cfg = loadHelper(in);
 	in.close();
+	return cfg;
 }
 
 /**********************************************************************************/
 
 /****************************** C-style *******************************************/
 
-void CstyleLoader::load(const std::string &path, Config* cfg) {
-
-	FILE* fl = fopen(path.c_str(), "r");
+std::string CstyleLoader::loadText() {
+	FILE* fl = fopen(path_.c_str(), "r");
 	if (fl == nullptr) {
-		return;
+		return std::string();
 	}
-	fscanf(fl, "%d\n%d\n%d\n%ld\n%ld\n", &cfg->N, &cfg->WIDTH, &cfg->HEIGHT, &cfg->groundColor, &cfg->gridColor);
+
+	char cfgText[1024];
+	
+	char ch;
+	int i = 0;
+	while ((ch = fgetc(fl)) != EOF) {
+		cfgText[i++] = ch;
+	}
+	cfgText[i] = '\0';	
+
+	return std::string(cfgText);
 }
 
 /**********************************************************************************/
 /****************************** Wmapping *******************************************/
 
-void MapLoader::load(const std::string &path, Config *cfg) {
-
-	HANDLE hFile = CreateFile(path.c_str(), GENERIC_WRITE | GENERIC_READ,
+std::string MapLoader::loadText() {
+	HANDLE hFile = CreateFile(path_.c_str(), GENERIC_WRITE | GENERIC_READ,
 	                          0, nullptr, OPEN_EXISTING,
 	                          FILE_ATTRIBUTE_NORMAL, nullptr);
 
 	if (hFile == INVALID_HANDLE_VALUE) {
 		CloseHandle(hFile);
-		return;
+		return  std::string();
 	}
 
 	int size = GetFileSize(hFile, nullptr);
@@ -46,7 +66,7 @@ void MapLoader::load(const std::string &path, Config *cfg) {
 	if (hMapping == nullptr) {
 		CloseHandle(hMapping);
 		CloseHandle(hFile);
-		return;
+		return  std::string();
 	}
 
 
@@ -57,102 +77,40 @@ void MapLoader::load(const std::string &path, Config *cfg) {
 	if (pData == nullptr) {
 		CloseHandle(hMapping);
 		CloseHandle(hFile);
-		return;
+		return std::string();
 	}
 
-	std::string line;
-	std::istringstream in(pData);
-
-	std::getline(in, line);
-	cfg->N = std::atoi(line.c_str());
-
-	std::getline(in, line);
-	cfg->WIDTH = std::atoi(line.c_str());
-
-	std::getline(in, line);
-	cfg->HEIGHT = std::atoi(line.c_str());
-
-	std::getline(in, line);
-	cfg->groundColor = std::atol(line.c_str());
-
-	std::getline(in, line);
-	cfg->gridColor = std::atol(line.c_str());
+	std::string str(pData, size);
 
 	UnmapViewOfFile(pData);
 	CloseHandle(hMapping);
 	CloseHandle(hFile);
 
-	return;
+	return str;
 }
 
 /**********************************************************************************/
 /****************************** WFileLoader ****************************************/
-void wFileLoader::load(const std::string &path, Config *cfg) {
-	HANDLE hFile = CreateFile(path.c_str(), GENERIC_READ,
+std::string wFileLoader::loadText() {
+	HANDLE hFile = CreateFile(path_.c_str(), GENERIC_READ,
 														0, nullptr, OPEN_EXISTING,
 														FILE_ATTRIBUTE_NORMAL, nullptr);
 
 	if (hFile == INVALID_HANDLE_VALUE) {
 		CloseHandle(hFile);
-		return;
+		return std::string();
 	}
 
 	DWORD size;
+	Config cfg;
 	char buffer[1024];
+	std::string str;
 
 	if (ReadFile(hFile, buffer, sizeof(buffer), &size, nullptr)) {
-		DWORD i = 0;
-		std::string tmp;
-		for (;i < size; ++i) {
-			if (buffer[i] == '\n') {
-				++i;
-				cfg->N = std::stoi(tmp);
-				tmp.clear();
-				break;
-			}
-			tmp.push_back(buffer[i]);
-		}
-
-		for (;i < size; ++i) {
-			if (buffer[i] == '\n') {
-				++i;
-				cfg->WIDTH = std::stoi(tmp);
-				tmp.clear();
-				break;
-			}
-			tmp.push_back(buffer[i]);
-		}
-
-		for (;i < size; ++i) {
-			if (buffer[i] == '\n') {
-				++i;
-				cfg->HEIGHT = std::stoi(tmp);
-				tmp.clear();
-				break;
-			}
-			tmp.push_back(buffer[i]);
-		}
-
-		for (;i < size; ++i) {
-			if (buffer[i] == '\n') {
-				++i;
-				cfg->groundColor = std::stol(tmp);
-				tmp.clear();
-				break;
-			}
-			tmp.push_back(buffer[i]);
-		}
-
-		for (;i < size; ++i) {
-			if (buffer[i] == '\n') {
-				++i;
-				cfg->gridColor = std::stol(tmp);
-				tmp.clear();
-				break;
-			}
-			tmp.push_back(buffer[i]);
-		}
+		str = std::string(buffer, size);
 	}
 
 	CloseHandle(hFile);
+
+	return str;
 }

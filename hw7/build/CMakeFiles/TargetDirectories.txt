@@ -1,0 +1,3 @@
+C:/Users/cl/ochw/hw7/build/CMakeFiles/coolApp.dir
+C:/Users/cl/ochw/hw7/build/CMakeFiles/edit_cache.dir
+C:/Users/cl/ochw/hw7/build/CMakeFiles/rebuild_cache.dir

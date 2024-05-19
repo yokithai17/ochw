@@ -15,10 +15,59 @@ Config cfg;             /* check config.h to more info */
 
 LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
 
+void RunNotepad(void) {
+	STARTUPINFO sInfo;
+	PROCESS_INFORMATION pInfo;
+	ZeroMemory(&sInfo, sizeof(STARTUPINFO));
+	CreateProcess(_T("C:\\Windows\\Notepad.exe"),
+                    NULL, NULL, NULL, FALSE, 0,
+                    NULL, NULL, &sInfo, &pInfo);
+}
+
+/**************************** MAIN ****************************************************/
+#include <memory>
+
+std::unique_ptr<ILoader> CreateLoader(int x, std::string path, Config cfg) {
+  switch (x) {
+  case 1:
+    return std::make_unique<StreamLoader>(path, cfg);
+
+  case 2:
+    return std::make_unique<CstyleLoader>(path, cfg);
+
+  case 3:
+    return std::make_unique<MapLoader>(path, cfg);
+
+  case 4:
+    return std::make_unique<wFileLoader>(path, cfg);
+  }
+
+  return nullptr;
+}
+
+std::unique_ptr<ISaver> CreateSaver(int x, std::string path, Config cfg) {
+  switch (x) {
+  case 1:
+    return std::make_unique<StreamSaver>(path, cfg);
+
+  case 2:
+    return std::make_unique<CstyleSaver>(path, cfg);
+
+  case 3:
+    return std::make_unique<MapSaver>(path, cfg);
+
+  case 4:
+    return std::make_unique<wFileSaver>(path, cfg);
+  }
+
+  return nullptr;
+}
+
 /**************************** MAIN ****************************************************/
 
 int main(int argc, char *argv[]) {
 	int loadConfig = 0;
+  std::string path("./config.txt");
 
 	int n = 10;
 	if (argc > 1) {
@@ -28,24 +77,11 @@ int main(int argc, char *argv[]) {
 		}
 	}
 
-	switch (loadConfig) {
-	case 1: {
-		StreamLoader::load("./config.txt", &cfg);
-	}
-		break;
-	case 2: {
-		CstyleLoader::load("./config.txt", &cfg);
-	}
-		break;
-	case 3: {
-		MapLoader::load("./config.txt", &cfg);
-	}
-		break;
-	case 4: {
-		wFileLoader::load("./config.txt", &cfg);
-	}
-		break;
-	}
+  /* load data from config fle */
+  auto loader = CreateLoader(loadConfig, path, cfg);
+  if (loader.get() != nullptr) {
+    cfg = loader->load();
+  }
 
 	cfg.N = (n == -1)?(cfg.N):(n);
 
@@ -106,25 +142,11 @@ int main(int argc, char *argv[]) {
   UnregisterClass(szWinClass, hThisInstance);
   DeleteObject(hBrush);
 
-	/* store data to file point.txt */
-	switch (loadConfig) {
-	case 1: {
-		StreamSaver("./config.txt").save(&cfg);
-	}
-		break;
-	case 2: {
-		CstyleSaver("./config.txt").save(&cfg);
-	}
-		break;
-	case 3: {
-		MapSaver("./config.txt").save(&cfg);
-	}
-		break;
-	case 4: {
-		wFileSaver("./config.txt").save(&cfg);
-	}
-		break;
-	}
+	/* store data to config file */
+  auto saver = CreateSaver(loadConfig, path, cfg);
+  if (saver.get() != nullptr) {
+    saver->save();
+  }
 
   return 0;
 }
@@ -211,8 +233,7 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM 
 
 	  case 'C':
 		  if (GetKeyState(VK_SHIFT) < 0) {
-			  ShellExecute(nullptr, "open", "notepad.exe",
-			               nullptr, nullptr, SW_SHOWNORMAL);
+        RunNotepad();
 		  }
 		  break;
 
@@ -232,3 +253,5 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM 
   /* for messages that we don't deal with */
   return DefWindowProc(hwnd, message, wParam, lParam);
 }
+
+

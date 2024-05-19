@@ -6,15 +6,14 @@
 #include "saver.h"
 #include "loader.h"
 
+#define BUFF_SIZE 1024
+
 const TCHAR szWinClass[] = _T("Win32SampleApp");
 const TCHAR szWinName[] = _T("Win32SampleWindow");
-HWND hwnd;              /*  This is the handle for our window */
+/* HWND hwnd;               This is the handle for our window */
 HBRUSH hBrush;           /* Current brush */
 
 Config cfg;             /* check config.h to more info */
-
-#define BUFF_SIZE 1024
-#define WM_PLAY_MOVE (WM_USER + 1)
 
 HANDLE hMapFile = CreateFileMapping(
     INVALID_HANDLE_VALUE,
@@ -38,75 +37,81 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM 
 
 BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam);
 
-/**************************** HWND HOlder ****************************************************/
+void RunNotepad();
+/**************************** MAIN ****************************************************/
+#include <memory>
 
+std::unique_ptr<ILoader> CreateLoader(int x, std::string path, Config cfg) {
+  switch (x) {
+  case 1:
+    return std::make_unique<StreamLoader>(path, cfg);
+
+  case 2:
+    return std::make_unique<CstyleLoader>(path, cfg);
+
+  case 3:
+    return std::make_unique<MapLoader>(path, cfg);
+
+  case 4:
+    return std::make_unique<wFileLoader>(path, cfg);
+  }
+
+  return nullptr;
+}
+
+std::unique_ptr<ISaver> CreateSaver(int x, std::string path, Config cfg) {
+  switch (x) {
+  case 1:
+    return std::make_unique<StreamSaver>(path, cfg);
+
+  case 2:
+    return std::make_unique<CstyleSaver>(path, cfg);
+
+  case 3:
+    return std::make_unique<MapSaver>(path, cfg);
+
+  case 4:
+    return std::make_unique<wFileSaver>(path, cfg);
+  }
+
+  return nullptr;
+}
 /**************************** MAIN ****************************************************/
 
 int main(int argc, char *argv[]) {
-	/*
 	int loadConfig = 0;
-	
+  std::string path("./config.txt");
+
+	int n = 10;
 	if (argc > 1) {
-		cfg.N = std::strtol(argv[1], nullptr, 10);
-		if (argc > 3) {
+		n = std::strtol(argv[1], nullptr, 10);
+		if (argc == 3) {
 			loadConfig = std::strtol(argv[2], nullptr, 10);
-		}
+		} 
 	}
-	
-	switch (loadConfig) {
-	case 1: {
-		StreamLoader::load("./config.txt", &cfg);
-	}
-		break;
-	case 2: {
-		CstyleLoader::load("./config.txt", &cfg);
-	}
-		break;
-	case 3: {
-		MapLoader::load("./config.txt", &cfg);
-	}
-		break;
-	case 4: {
-		wFileLoader::load("./config.txt", &cfg);
-	}
-		break;
-	}
-	*/
 
-	HANDLE hMapFileTMP = CreateFileMapping(
-			INVALID_HANDLE_VALUE,
-			NULL,
-			PAGE_READWRITE,
-			0,
-			10,
-			_T("ChatLine9847589345673246759")
-	);
+  /* initislize loaders and savers */
+  auto saver = CreateSaver(loadConfig, path, cfg);
+  auto loader = CreateLoader(loadConfig, path, cfg);
 
-	char* pBufTMP = (char*)MapViewOfFile(
-			hMapFileTMP,
-			FILE_MAP_ALL_ACCESS,
-			0,
-			0,
-			10
-	);
+  /* load data from config fle */
+  if (loader.get() != nullptr) {
+    cfg = loader->load();
+  }
 
+  if (n != 0) {
+    cfg.N = (n == -1)?(cfg.N):(n);
 
-	if (pBufTMP[0] != '0') {
-		pBufTMP[0] = '0';
-		std::string line = std::to_string(cfg.N);
-		for (int i = 0; i < line.size(); ++i) {
-			pBufTMP[i + 1] = line[i];
-		}
-		pBufTMP[line.size() + 1] = '\n';
-		for (int i = 0; i < cfg.N * cfg.N; ++i) {
+    for (int i = 0; i < cfg.N * cfg.N; ++i) {
 			pBuf[i] = '0';
 		}
-	} else {
-		std::istringstream in(pBufTMP);
-		std::string line;
-		std::getline(in, line);
-		cfg.N = std::stoi(line, nullptr, 10);
-	}
+
+    CreateSaver(1, path, cfg)->save();
+  } else if (n == 0) {
+    cfg = CreateLoader(1, path, cfg)->load();
+  }
+
+  /* if we create another window */
 
   BOOL bMessageOk;
   MSG message;            /* Here message to the application are saved */
@@ -131,7 +136,7 @@ int main(int argc, char *argv[]) {
     return 0;
 
   /* The class is registered, let's create the program*/
-  hwnd = CreateWindow(
+  HWND hwnd = CreateWindow(
       szWinClass,          /* Classname */
       szWinName,       /* Title Text */
       WS_OVERLAPPEDWINDOW, /* default window */
@@ -144,7 +149,6 @@ int main(int argc, char *argv[]) {
       hThisInstance,       /* Program Instance handler */
       nullptr                 /* No Window Creation data */
   );
-
 
   /* Make the window visible on the screen */
   ShowWindow(hwnd, nCmdShow);
@@ -166,31 +170,14 @@ int main(int argc, char *argv[]) {
   UnregisterClass(szWinClass, hThisInstance);
   DeleteObject(hBrush);
 
-	/* store data to file point.txt 
-	switch (loadConfig) {
-	case 1: {
-		StreamSaver("./config.txt").save(&cfg);
-	}
-		break;
-	case 2: {
-		CstyleSaver("./config.txt").save(&cfg);
-	}
-		break;
-	case 3: {
-		MapSaver("./config.txt").save(&cfg);
-	}
-		break;
-	case 4: {
-		wFileSaver("./config.txt").save(&cfg);
-	}
-		break;
-	}
-	*/
+	/* store data to config file */
+  if (saver.get() != nullptr) {
+    saver->save();
+  }
 
+  /* CLEAN UP mapping stuff */
   UnmapViewOfFile(pBuf);
-  UnmapViewOfFile(pBufTMP);
   CloseHandle(hMapFile);
-  CloseHandle(hMapFileTMP);
 
   return 0;
 }
@@ -200,26 +187,28 @@ int main(int argc, char *argv[]) {
 
 LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
   static ShapeMap map(R"(.\points.txt)", &cfg, pBuf);
-  static LONG xSize;
-  static LONG ySize;
+	static LONG xSize;
+	static LONG ySize;
 
-  /* handle the messages */
-  switch (message) {              
+	/* handle the messages */
+  switch (message) {
+
   case WM_DESTROY: {
-	  RECT rect;
-	  GetWindowRect(hwnd, &rect);
-	  cfg.WIDTH = rect.right - rect.left;
-	  cfg.HEIGHT = rect.bottom - rect.top;
-  }
-		PostQuitMessage(0);       /* send a WM_QUIT to the message queue */
+    RECT rect;
+    GetWindowRect(hwnd, &rect);
+		cfg.WIDTH = rect.right - rect.left;
+		cfg.HEIGHT = rect.bottom - rect.top;
+    PostQuitMessage(0);
+    } 
     return 0;
-    
+
+
   case WM_PAINT: {
     PAINTSTRUCT ps;
     HDC hdc = BeginPaint(hwnd, &ps);
 
     map.loadFromMapping();
-    
+
     hBrush = CreateSolidBrush(cfg.groundColor);
     DrawGrid(hdc, &cfg);
 
@@ -229,16 +218,16 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM 
     EndPaint(hwnd, &ps);
   }
     return 0;
-
+    
   case WM_SIZE: {
-    RECT rect;
-    GetClientRect(hwnd, &rect);
+	  RECT rect;
+	  GetClientRect(hwnd, &rect);
 
-    cfg.WIDTH = rect.right - rect.left;
-    cfg.HEIGHT = rect.bottom - rect.top;
-    InvalidateRect(hwnd, nullptr, TRUE);
+	  cfg.WIDTH = rect.right - rect.left;
+	  cfg.HEIGHT = rect.bottom - rect.top;
+	  InvalidateRect(hwnd, nullptr, TRUE);
   }
-    return 0;
+	  return 0;
 
   case WM_RBUTTONDOWN: {
     LONG xPos = GET_X_LPARAM(lParam);
@@ -246,7 +235,6 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM 
 
     map.update(cfg.WIDTH, cfg.HEIGHT, xPos, yPos, 1);
 	  EnumWindows(EnumWindowsProc, TRUE);
-	  //InvalidateRect(nullptr, nullptr, FALSE);
   }
 
     return 0;
@@ -255,9 +243,8 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM 
     LONG xPos = GET_X_LPARAM(lParam);
     LONG yPos = GET_Y_LPARAM(lParam);
 
-    map.update(cfg.WIDTH, cfg.HEIGHT, xPos, yPos, 2);
-	  EnumWindows(EnumWindowsProc, TRUE);
-	  //InvalidateRect(nullptr, nullptr, FALSE);
+	  map.update(cfg.WIDTH, cfg.HEIGHT, xPos, yPos, 2);
+    EnumWindows(EnumWindowsProc, TRUE);
   }
 
     return 0;
@@ -279,8 +266,7 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM 
 
 	  case 'C':
 		  if (GetKeyState(VK_SHIFT) < 0) {
-			  ShellExecute(nullptr, "open", "notepad.exe",
-			               nullptr, nullptr, SW_SHOWNORMAL);
+        RunNotepad();
 		  }
 		  break;
 
@@ -290,7 +276,7 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM 
 
   case WM_MOUSEWHEEL: {
     int delta = (GET_WHEEL_DELTA_WPARAM(wParam) > 0) ? (5) : (-5);
-    ChangeGridColor(delta, map.getConfigPointer());
+    ChangeGridColor(delta, &cfg);
     InvalidateRect(hwnd, nullptr, TRUE);
   }
     return 0;
@@ -302,12 +288,21 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM 
 }
 
 BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam) {
-	char className[256];
+	TCHAR className[256];
 	GetClassName(hwnd, className, sizeof(className));
-
-	if (strcmp(className, szWinClass) == 0) {
+  
+	if (_tcscmp(szWinClass, szWinClass) == 0) {
 		RedrawWindow(hwnd, nullptr, nullptr, RDW_INVALIDATE | RDW_FRAME | RDW_ALLCHILDREN);
 	}
 
 	return TRUE;
+}
+
+void RunNotepad() {
+	STARTUPINFO sInfo;
+	PROCESS_INFORMATION pInfo;
+	ZeroMemory(&sInfo, sizeof(STARTUPINFO));
+	CreateProcess(_T("C:\\Windows\\Notepad.exe"),
+                    NULL, NULL, NULL, FALSE, 0,
+                    NULL, NULL, &sInfo, &pInfo);
 }
