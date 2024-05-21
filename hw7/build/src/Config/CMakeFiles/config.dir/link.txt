@@ -1,2 +1,0 @@
-C:\MinGW\bin\ar.exe qc libconfig.a CMakeFiles/config.dir/config.cpp.obj
-C:\MinGW\bin\ranlib.exe libconfig.a

@@ -1,2 +1,0 @@
-C:\MinGW\bin\ar.exe qc libloader.a CMakeFiles/loader.dir/loader.cpp.obj
-C:\MinGW\bin\ranlib.exe libloader.a

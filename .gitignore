@@ -1,13 +1,6 @@
 .idea/
 
-hw3/.idea/
-hw3/build/
-hw3/bin/
-
-hw4/.idea/
-hw4/build/
-hw4/bin/
-
-hw5/.idea/
-hw5/build/
-hw5/bin/
+hw*/.idea/
+hw*/build/
+hw*/bin/
+hw*/.vscode/

@@ -1,2 +1,0 @@
-C:\MinGW\bin\ar.exe qc libsaver.a CMakeFiles/saver.dir/saver.cpp.obj
-C:\MinGW\bin\ranlib.exe libsaver.a
