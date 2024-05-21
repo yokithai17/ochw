@@ -15,22 +15,8 @@ HBRUSH hBrush;           /* Current brush */
 
 Config cfg;             /* check config.h to more info */
 
-HANDLE hMapFile = CreateFileMapping(
-    INVALID_HANDLE_VALUE,
-    NULL,
-    PAGE_READWRITE,
-    0,
-    BUFF_SIZE,
-    _T("ChatLine9847589345673246758")
-);
-
-char* pBuf = (char*)MapViewOfFile(
-    hMapFile,
-    FILE_MAP_ALL_ACCESS,
-    0,
-    0,
-    BUFF_SIZE
-);
+HANDLE hMapFile;
+char* pBuf = nullptr;
 
 
 LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
@@ -77,7 +63,8 @@ std::unique_ptr<ISaver> CreateSaver(int x, std::string path, Config cfg) {
   return nullptr;
 }
 /**************************** MAIN ****************************************************/
-
+int WConsole(char*, ...);
+auto MapName = _T("ChatLine9847589345673246758");
 int main(int argc, char *argv[]) {
 	int loadConfig = 0;
   std::string path("./config.txt");
@@ -90,26 +77,52 @@ int main(int argc, char *argv[]) {
 		} 
 	}
 
-  /* initislize loaders and savers */
-  auto saver = CreateSaver(loadConfig, path, cfg);
-  auto loader = CreateLoader(loadConfig, path, cfg);
-
   /* load data from config fle */
+  auto loader = CreateLoader(loadConfig, path, cfg);
   if (loader.get() != nullptr) {
     cfg = loader->load();
   }
 
-  if (n != 0) {
-    cfg.N = (n == -1)?(cfg.N):(n);
+  
+  hMapFile = OpenFileMapping(
+                   FILE_MAP_ALL_ACCESS,   // read/write access
+                   FALSE,                 // do not inherit the name
+                   MapName
+  );
 
+  bool flag = hMapFile == NULL;
+
+  if (flag) {
+    hMapFile = CreateFileMapping(
+    INVALID_HANDLE_VALUE,
+    NULL,
+    PAGE_READWRITE,
+    0,
+    BUFF_SIZE,
+    MapName
+    );
+  }
+
+  pBuf = (char*)MapViewOfFile(
+  hMapFile,
+  FILE_MAP_ALL_ACCESS,
+  0,
+  0,
+  BUFF_SIZE
+  );
+
+
+  if (flag) {
+    cfg.N = (n == -1)?(cfg.N):(n);
     for (int i = 0; i < cfg.N * cfg.N; ++i) {
 			pBuf[i] = '0';
 		}
 
     CreateSaver(1, path, cfg)->save();
-  } else if (n == 0) {
+  } else {
     cfg = CreateLoader(1, path, cfg)->load();
   }
+
 
   /* if we create another window */
 
@@ -171,6 +184,7 @@ int main(int argc, char *argv[]) {
   DeleteObject(hBrush);
 
 	/* store data to config file */
+  auto saver = CreateSaver(loadConfig, path, cfg);
   if (saver.get() != nullptr) {
     saver->save();
   }
@@ -292,7 +306,7 @@ BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam) {
 	GetClassName(hwnd, className, sizeof(className));
   
 	if (_tcscmp(szWinClass, szWinClass) == 0) {
-		RedrawWindow(hwnd, nullptr, nullptr, RDW_INVALIDATE | RDW_FRAME | RDW_ALLCHILDREN);
+		RedrawWindow(hwnd, nullptr, nullptr, RDW_ERASE | RDW_INTERNALPAINT | RDW_INVALIDATE);
 	}
 
 	return TRUE;

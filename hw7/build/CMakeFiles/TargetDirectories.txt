@@ -1,3 +1,15 @@
 C:/Users/cl/ochw/hw7/build/CMakeFiles/coolApp.dir
 C:/Users/cl/ochw/hw7/build/CMakeFiles/edit_cache.dir
 C:/Users/cl/ochw/hw7/build/CMakeFiles/rebuild_cache.dir
+C:/Users/cl/ochw/hw7/build/src/notepad/CMakeFiles/notepad.dir
+C:/Users/cl/ochw/hw7/build/src/notepad/CMakeFiles/edit_cache.dir
+C:/Users/cl/ochw/hw7/build/src/notepad/CMakeFiles/rebuild_cache.dir
+C:/Users/cl/ochw/hw7/build/src/saver/CMakeFiles/saver.dir
+C:/Users/cl/ochw/hw7/build/src/saver/CMakeFiles/edit_cache.dir
+C:/Users/cl/ochw/hw7/build/src/saver/CMakeFiles/rebuild_cache.dir
+C:/Users/cl/ochw/hw7/build/src/Config/CMakeFiles/config.dir
+C:/Users/cl/ochw/hw7/build/src/Config/CMakeFiles/edit_cache.dir
+C:/Users/cl/ochw/hw7/build/src/Config/CMakeFiles/rebuild_cache.dir
+C:/Users/cl/ochw/hw7/build/src/loader/CMakeFiles/loader.dir
+C:/Users/cl/ochw/hw7/build/src/loader/CMakeFiles/edit_cache.dir
+C:/Users/cl/ochw/hw7/build/src/loader/CMakeFiles/rebuild_cache.dir

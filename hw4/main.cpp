@@ -211,7 +211,7 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM 
     LONG yPos = GET_Y_LPARAM(lParam);
 
 	  map.update(cfg.WIDTH, cfg.HEIGHT, xPos, yPos, 2);
-    InvalidateRect(hwnd, nullptr, 0);
+    InvalidateRect(hwnd, nullptr, TRUE);
   }
 
     return 0;
