@@ -29,6 +29,87 @@ void ShapeMap::update(int width, int height,
 	map_[posX][posY] = status;
 }
 
+bool ShapeMap::isValide(int width, int height,
+						int x, int y) {
+	double cellWidth = width / static_cast<double>(cfg_->N);
+	double cellHeight = height / static_cast<double>(cfg_->N);
+
+	int posX = std::floor(x / cellWidth);
+	int posY = std::floor(y / cellHeight);
+
+	posX = mmin(posX, cfg_->N - 1);
+	posY = mmin(posY, cfg_->N - 1);
+
+	return map_[posX][posY] == 0;
+}
+
+std::pair<int, int> ShapeMap::getPos(int width, int height,
+						int x, int y) {
+	double cellWidth = width / static_cast<double>(cfg_->N);
+	double cellHeight = height / static_cast<double>(cfg_->N);
+
+	int posX = std::floor(x / cellWidth);
+	int posY = std::floor(y / cellHeight);
+
+	posX = mmin(posX, cfg_->N - 1);
+	posY = mmin(posY, cfg_->N - 1);
+
+	return std::make_pair(posX, posY);					
+}
+
+bool ShapeMap::checkWin(int width, int height, int x, int y) {
+		double cellWidth = width / static_cast<double>(cfg_->N);
+	double cellHeight = height / static_cast<double>(cfg_->N);
+
+	int posX = std::floor(x / cellWidth);
+	int posY = std::floor(y / cellHeight);
+
+	posX = mmin(posX, cfg_->N - 1);
+	posY = mmin(posY, cfg_->N - 1);
+
+	bool diag1 =( posX == posY);
+	bool diag2 = (posX == map_.size() - posY - 1);
+	
+	bool win = false;
+	bool flag = false;
+	if (diag1) {
+		for (int i = 0; i < map_.size(); ++i) {
+			if (map_[i][i] != map_[posX][posY]) {
+				flag = true;
+			}
+		}
+		if (!flag) return true;
+	}
+
+	flag = false;
+	if (diag2) {
+		for (int i = 0; i < map_.size(); ++i) {
+			if (map_[i][map_.size() - i - 1] != map_[posX][posY]) {
+				flag = true;
+			}
+		}
+		if (!flag) return true;
+	}
+	
+	flag = false;
+	for (int i = 0; i < map_.size(); ++i) {
+		if (map_[posX][posY] != map_[i][posY]) {
+			flag = true;
+		}
+	}
+	if (!flag) return true;
+
+	flag = false;
+	for (int i = 0; i < map_.size(); ++i) {
+		if (map_[posX][posY] != map_[posX][i]) {
+			flag = true;
+		}
+	}
+	if (!flag) return true;
+
+	return false;
+}
+
 void ShapeMap::draw(LONG width, LONG height, HDC hdc) const {
 	LONG stepX = width / cfg_->N;
 	LONG stepY = height / cfg_->N;

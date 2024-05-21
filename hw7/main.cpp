@@ -86,6 +86,7 @@ int team = TEAM1;
 LONG move = TEAM1;
 HANDLE movesem;
 HANDLE paintsem;
+LONG countMoves = 0;
 
 struct ThreadArgs {
   HWND hwnd_;
@@ -97,6 +98,8 @@ ShapeMap map;
 
 void paintHelper(HWND, ShapeMap*);
 DWORD WINAPI paint(void* args);
+CRITICAL_SECTION gameover;
+
 
 /*************************************************************************************/
 int main(int argc, char *argv[]) {
@@ -221,6 +224,7 @@ int main(int argc, char *argv[]) {
   out << team;
   out.close();
   */
+  InitializeCriticalSection(&gameover);
   PaintThreadHNDL = CreateThread(NULL, 0, paint, &tArgs, 0, &dwThread);
 
   /* Run the message loop. It will run until GetMessage() returns 0 */
@@ -309,6 +313,7 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM 
     std::ofstream f("team.txt", std::ios::app);
     f << teamToMove;
     f.close();
+
     if (teamToMove != team) {
       auto tmp1 = (teamToMove == TEAM1) ? (_T("team1 move")) : (_T("team2 move"));
       auto tmp2 = (team == TEAM1) ? (_T("ur in team1")) : (_T("ur in team2"));
@@ -319,7 +324,33 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM 
     LONG xPos = GET_X_LPARAM(lParam);
     LONG yPos = GET_Y_LPARAM(lParam);
 
+    if (!map.isValide(cfg.WIDTH, cfg.HEIGHT, xPos, yPos)) {
+      MessageBox(hwnd, _T("STARIY BOG"), _T("U CANT PUT HERE"), MB_OK);
+      return 0;
+    }
+
     map.update(cfg.WIDTH, cfg.HEIGHT, xPos, yPos, team);
+    InterlockedIncrement(&countMoves);
+    
+    if (map.checkWin(cfg.WIDTH, cfg.HEIGHT, xPos, yPos)) {
+      EnterCriticalSection(&gameover);
+      auto tmp = (team == TEAM1) ? (_T("TEAM1 WIN")) : (_T("TEAM2 WIN"));
+      MessageBox(hwnd,  tmp, _T("STARIY BOG"), MB_OK);
+      for (int i = 0; i < cfg.N * cfg.N; ++i) {
+        pBuf[i] = '0';
+      }
+      LeaveCriticalSection(&gameover);
+    }
+
+    if (countMoves == cfg.N * cfg.N) {
+      EnterCriticalSection(&gameover);
+      MessageBox(hwnd,  _T("no one win"), _T("STARIY BOG"), MB_OK);
+      for (int i = 0; i < cfg.N * cfg.N; ++i) {
+        pBuf[i] = '0';
+      }
+      LeaveCriticalSection(&gameover);
+    }
+    
     if (team == TEAM1) {
       ReleaseSemaphore(movesem , 1, NULL);
     } else {

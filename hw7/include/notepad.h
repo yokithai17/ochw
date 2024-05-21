@@ -38,6 +38,19 @@ public:
 
 	void loadFromMapping();
 
+	bool isValide(int width, int height, int x, int y);
+
+	std::pair<int, int> getPos(int width, int height, int x, int y);
+
+	bool checkWin(int width, int height, int x, int y);
+
+	void clear() {
+		map_.clear();
+		for (int i = 0; i < map_.size() * map_.size(); ++i) {
+			pBuf_[i] = '0';
+		}
+	}
+
 };
 /**********************************************************************************/
 
